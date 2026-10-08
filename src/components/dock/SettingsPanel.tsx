@@ -1,4 +1,5 @@
 import type { AppConfig } from "../../lib/api";
+import { ClaudeConnect } from "../chat/ClaudeConnect";
 
 interface SettingsPanelProps {
   config: AppConfig;
@@ -21,6 +22,23 @@ export function SettingsPanel({ config, error, onChange }: SettingsPanelProps) {
       <p className="text-neutral-400">
         Show/hide shortcut: <kbd className="rounded bg-white/10 px-1.5 py-0.5">{config.hotkey}</kbd>
       </p>
+      <label className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={config.autoApply}
+          onChange={(e) => onChange({ autoApply: e.target.checked })}
+          className="h-4 w-4 accent-sky-400"
+        />
+        Apply Claude&rsquo;s proposed edits without asking
+      </label>
+      <details className="rounded-lg bg-white/5 p-2">
+        <summary className="cursor-pointer text-neutral-300">
+          Claude: {config.claudeProvider === "cli" ? "Claude Code" : config.claudeProvider === "api" ? "API key" : "not connected"}
+        </summary>
+        <div className="mt-2">
+          <ClaudeConnect connected={config.claudeProvider} onConnected={(claudeProvider) => onChange({ claudeProvider })} />
+        </div>
+      </details>
       <p className="truncate text-neutral-400">Ops Memory: {config.opsMemoryPath ?? "not set"}</p>
       <button
         type="button"

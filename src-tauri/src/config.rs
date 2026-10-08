@@ -22,11 +22,15 @@ pub struct AppConfig {
     pub ops_memory_path: Option<String>,
     /// True once the setup wizard has finished.
     pub setup_complete: bool,
+    /// How Mochi talks to Claude: "cli" or "api" (None = not connected). The API key itself lives in the OS keychain.
+    pub claude_provider: Option<String>,
+    /// Apply Claude's proposed edits without asking for approval.
+    pub auto_apply: bool,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
-        Self { hotkey: DEFAULT_HOTKEY.to_string(), auto_collapse: true, monitor: None, sound: true, ops_memory_path: None, setup_complete: false }
+        Self { hotkey: DEFAULT_HOTKEY.to_string(), auto_collapse: true, monitor: None, sound: true, ops_memory_path: None, setup_complete: false, claude_provider: None, auto_apply: false }
     }
 }
 
@@ -71,6 +75,8 @@ mod tests {
             sound: false,
             ops_memory_path: Some("D:/ops".into()),
             setup_complete: true,
+            claude_provider: Some("api".into()),
+            auto_apply: true,
         };
         save(dir.path(), &cfg).unwrap();
         assert_eq!(load(dir.path()), cfg);
@@ -106,6 +112,7 @@ mod tests {
         let json = serde_json::to_string(&AppConfig::default()).unwrap();
         assert!(json.contains("autoCollapse"));
         assert!(json.contains("opsMemoryPath") && json.contains("setupComplete"));
+        assert!(json.contains("claudeProvider") && json.contains("autoApply"));
         assert!(!json.contains("auto_collapse"));
     }
 }

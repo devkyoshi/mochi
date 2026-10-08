@@ -12,7 +12,7 @@ Plan: [PLAN.md](PLAN.md). Update this file at the end of every stage. Find a sta
 | 5 | Setup wizard | Done | 2026-10-08 |
 | 6 | Browse / edit / search / live refresh | Done | 2026-10-08 |
 | 7 | Quick Add | Done | 2026-10-08 |
-| 8 | Claude integration | Not started | |
+| 8 | Claude integration | Done (live calls not verified) | 2026-10-08 |
 | 9 | Global rule & hook installer | Not started | |
 | 10 | Alerts, digest, polish | Not started | |
 | 11 | Packaging & hardening | Not started | |
@@ -28,3 +28,4 @@ Plan: [PLAN.md](PLAN.md). Update this file at the end of every stage. Find a sta
 - 2026-10-08 — Stage 5: first-run wizard (6 steps), native folder picker, Rust directory validation (rejects roots, system dirs, home and parents, unwritable, files, `..`), idempotent scaffold from templates + `git init` + initial commit, Re-run setup in Settings; 13 new cargo tests, 22 new vitest tests (109 vitest / 51 cargo). Claude and global-rule steps are placeholders. fs access stays in Rust commands (no fs plugin scope needed).
 - 2026-10-08 — Stage 6: traversal-safe Rust store (list/read/write/undo/history), write→scan→commit pipeline (commits only the written file), notify watcher with self-write filtering, Home stats + recent changes, Browse (markdown view, raw editor + frontmatter form, diff review, undo), MiniSearch. Repos created by Mochi set `core.autocrlf=false` so reverts keep LF. Expanded panel height raised 240→420 for Browse. Verified live: external edits in a temp Ops Memory folder were reported by the watcher in the running app (txt files ignored). 20 new cargo tests (71), 47 new vitest tests (156).
 - 2026-10-08 — Stage 7: Quick Add tab. Pure planner (`planQuickAdd`) builds changelog line (newest first, new month file from template), target Recent Changes bullet, `last_updated`/`updated_by`, regenerated INDEX, or inbox append; new VM/project created from templates. Saved through new all-or-nothing `write_ops_files` as ONE commit (undo reverts the whole note). Ctrl/Cmd+Enter saves; happy mascot for 2s. 6 new cargo tests (77), 29 new vitest tests (185).
+- 2026-10-08 — Stage 8: Claude integration (see docs/claude-integration.md). CLI and API providers behind one interface, key in OS keychain, streaming Chat tab with `thinking` mascot, edits only as reviewed diffs (auto-apply setting) through scan→commit, wizard step 3 + Settings with test call. 22 new cargo tests (99; fake CLI process and local fake HTTP server), 34 new vitest tests (219). NOT verified live: real `claude` run, real API call, real keychain (need the user's login/key). Some CLI flags from the docs lookup were deliberately not used because unverified.

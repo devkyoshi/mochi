@@ -3,14 +3,13 @@ import { useDock } from "../../lib/dock/useDock";
 import { useOpsMemory } from "../../lib/ops/useOpsMemory";
 import { QuickAdd } from "../add/QuickAdd";
 import { Browse } from "../browse/Browse";
+import { Chat } from "../chat/Chat";
 import { Home } from "../home/Home";
 import { MascotDevPanel } from "../mascot";
 import { Wizard } from "../wizard/Wizard";
 import { Pill } from "./Pill";
 import { SettingsPanel } from "./SettingsPanel";
 import { TabBar } from "./TabBar";
-
-const CHAT_PLACEHOLDER = "Ask Claude about your Ops Memory.";
 
 export default function Dock() {
   const { state, config, error, loaded, send, updateConfig } = useDock();
@@ -63,7 +62,13 @@ export default function Dock() {
               ) : tab === "add" ? (
                 <QuickAdd files={ops.files} entries={ops.entries} onSaved={() => void ops.reload()} />
               ) : (
-                <p>{CHAT_PLACEHOLDER}</p>
+                <Chat
+                  files={ops.files}
+                  claudeProvider={config.claudeProvider}
+                  autoApply={config.autoApply}
+                  onApplied={() => void ops.reload()}
+                  onOpenSettings={() => send({ type: "selectTab", tab: "settings" })}
+                />
               )}
             </section>
           </>

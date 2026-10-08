@@ -1,3 +1,4 @@
+mod claude;
 mod config;
 mod dock;
 mod geometry;
@@ -36,6 +37,7 @@ pub fn run() {
                 config_dir,
                 self_writes: Mutex::new(Default::default()),
                 watcher: Mutex::new(None),
+                claude_cancels: Mutex::new(Default::default()),
             });
             opsfs::restart_watcher(app.handle());
 
@@ -63,7 +65,13 @@ pub fn run() {
             opsfs::write_ops_file,
             opsfs::write_ops_files,
             opsfs::undo_last_change,
-            opsfs::ops_history
+            opsfs::ops_history,
+            claude::claude_send,
+            claude::claude_cancel,
+            claude::claude_test,
+            claude::claude_save_key,
+            claude::claude_has_key,
+            claude::claude_delete_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

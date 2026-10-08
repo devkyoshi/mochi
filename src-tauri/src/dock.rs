@@ -16,6 +16,8 @@ pub struct AppState {
     pub self_writes: Mutex<crate::store::SelfWrites>,
     /// Active file watcher on the Ops Memory folder (dropping it stops watching).
     pub watcher: Mutex<Option<notify::RecommendedWatcher>>,
+    /// Cancel handles for in-flight Claude requests, by request id.
+    pub claude_cancels: Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<()>>>,
 }
 
 fn to_info(m: &tauri::Monitor) -> MonitorInfo {

@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 
+export type ClaudeProviderKind = "cli" | "api";
+
 /** Mirrors `AppConfig` in src-tauri/src/config.rs. */
 export interface AppConfig {
   hotkey: string;
@@ -10,6 +12,8 @@ export interface AppConfig {
   sound: boolean;
   opsMemoryPath: string | null;
   setupComplete: boolean;
+  claudeProvider: ClaudeProviderKind | null;
+  autoApply: boolean;
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -19,6 +23,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   sound: true,
   opsMemoryPath: null,
   setupComplete: false,
+  claudeProvider: null,
+  autoApply: false,
 };
 
 export const getConfig = (): Promise<AppConfig> => invoke<AppConfig>("get_config");
@@ -93,3 +99,27 @@ export const onOpsChanged = (callback: (paths: string[]) => void): Promise<() =>
 /** Save several files as one commit (all or nothing). */
 export const writeOpsFiles = (files: { path: string; content: string }[], message: string): Promise<WriteOutcome> =>
   invoke<WriteOutcome>("write_ops_files", { files, message });
+
+/** Mirrors `StreamEvent` in src-tauri/src/claude.rs. */
+export type StreamEvent = { type: "text"; text: string } | { type: "done" } | { type: "error"; message: string };
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export const claudeSend = (requestId: string, system: string, messages: ChatMessage[]): Promise<void> =>
+  invoke<void>("claude_send", { requestId, system, messages });
+
+export const claudeCancel = (requestId: string): Promise<void> => invoke<void>("claude_cancel", { requestId });
+
+/** Test a provider with a tiny request; resolves to the reply text. */
+export const claudeTest = (provider: ClaudeProviderKind): Promise<string> => invoke<string>("claude_test", { provider });
+
+/** Store the API key in the OS keychain (it is never read back into the UI). */
+export const claudeSaveKey = (key: string): Promise<void> => invoke<void>("claude_save_key", { key });
+export const claudeHasKey = (): Promise<boolean> => invoke<boolean>("claude_has_key");
+export const claudeDeleteKey = (): Promise<void> => invoke<void>("claude_delete_key");
+
+export const onClaudeStream = (requestId: string, callback: (e: StreamEvent) => void): Promise<() => void> =>
+  listen<StreamEvent>(`claude://${requestId}`, (e) => callback(e.payload));

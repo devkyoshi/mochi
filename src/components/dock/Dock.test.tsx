@@ -91,7 +91,7 @@ describe("Dock", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Mochi" }));
     fireEvent.click(screen.getByRole("tab", { name: "Chat" }));
     expect(screen.getByRole("tab", { name: "Chat" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("Ask Claude about your Ops Memory.")).toBeInTheDocument();
+    expect(screen.getByText("Claude is not connected yet.")).toBeInTheDocument();
   });
 
   it("saves the sound toggle", async () => {

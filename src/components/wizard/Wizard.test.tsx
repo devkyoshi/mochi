@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
+  claudeTest: vi.fn(),
   pickFolder: vi.fn(),
   validateOpsDirectory: vi.fn(),
   setupOpsMemory: vi.fn(),
@@ -107,9 +108,26 @@ describe("Wizard", () => {
         hotkey: "Alt+M",
         autoCollapse: true,
         sound: false,
+        claudeProvider: null,
         setupComplete: true,
       }),
     );
+  });
+
+  it("lets the user connect Claude in the wizard and saves the provider", async () => {
+    api.claudeTest.mockResolvedValue("ok");
+    const onFinish = vi.fn().mockResolvedValue(null);
+    render(<Wizard onFinish={onFinish} />);
+    await reachDirectoryReady();
+    click("Create and continue");
+    await screen.findByText("Connect Claude");
+    click("Test connection");
+    await screen.findByText("Connected");
+    click("Next");
+    click("Next");
+    click("Next");
+    click("Finish");
+    await waitFor(() => expect(onFinish).toHaveBeenCalledWith(expect.objectContaining({ claudeProvider: "cli" })));
   });
 
   it("blocks an empty shortcut", async () => {

@@ -1,3 +1,5 @@
+import type { ClaudeProviderKind } from "../api";
+
 export const WIZARD_STEPS = ["welcome", "directory", "claude", "rule", "preferences", "finish"] as const;
 export type WizardStep = (typeof WIZARD_STEPS)[number];
 
@@ -19,6 +21,8 @@ export interface WizardState {
   hotkey: string;
   autoCollapse: boolean;
   sound: boolean;
+  /** Provider that passed its test call, if any (the step can be skipped). */
+  claudeProvider: ClaudeProviderKind | null;
 }
 
 export type WizardAction =
@@ -30,6 +34,7 @@ export type WizardAction =
   | { type: "validated"; resolvedPath: string }
   | { type: "invalid"; message: string }
   | { type: "scaffolded"; path: string }
+  | { type: "setClaude"; provider: ClaudeProviderKind }
   | { type: "setPref"; pref: "hotkey"; value: string }
   | { type: "setPref"; pref: "autoCollapse" | "sound"; value: boolean };
 
@@ -42,6 +47,7 @@ export const initialWizardState: WizardState = {
   hotkey: "CommandOrControl+Shift+Space",
   autoCollapse: true,
   sound: true,
+  claudeProvider: null,
 };
 
 /** Whether the current step allows moving forward. */
@@ -88,6 +94,8 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       return { ...state, validation: { status: "error", message: action.message }, createdPath: null };
     case "scaffolded":
       return { ...state, createdPath: action.path };
+    case "setClaude":
+      return { ...state, claudeProvider: action.provider };
     case "setPref":
       return { ...state, [action.pref]: action.value } as WizardState;
   }

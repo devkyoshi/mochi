@@ -8,6 +8,7 @@ import {
   wizardReducer,
   type WizardState,
 } from "../../lib/wizard/wizardState";
+import { ClaudeConnect } from "../chat/ClaudeConnect";
 import { Mascot, type MascotState } from "../mascot";
 
 interface WizardProps {
@@ -67,6 +68,7 @@ export function Wizard({ onFinish }: WizardProps) {
       hotkey: state.hotkey.trim(),
       autoCollapse: state.autoCollapse,
       sound: state.sound,
+      claudeProvider: state.claudeProvider,
       setupComplete: true,
     });
     setFinishError(error);
@@ -135,7 +137,8 @@ export function Wizard({ onFinish }: WizardProps) {
           {step === "claude" && (
             <>
               <h2 className="text-base font-semibold text-white">Connect Claude</h2>
-              <p>Chat with Claude about your notes. This step is coming soon; you can skip it for now.</p>
+              <p>Chat with Claude about your notes. You can skip this and connect later in Settings.</p>
+              <ClaudeConnect connected={state.claudeProvider} onConnected={(provider) => dispatch({ type: "setClaude", provider })} />
             </>
           )}
 
