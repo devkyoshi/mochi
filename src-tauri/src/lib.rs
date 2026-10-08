@@ -1,6 +1,7 @@
 mod config;
 mod dock;
 mod geometry;
+mod ops;
 mod scanner;
 
 use dock::AppState;
@@ -17,6 +18,7 @@ fn app_version() -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Focused(false) = event {
@@ -45,7 +47,9 @@ pub fn run() {
             scanner::scan_secrets,
             dock::get_config,
             dock::set_config,
-            dock::set_dock_state
+            dock::set_dock_state,
+            ops::validate_ops_directory,
+            ops::setup_ops_memory
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

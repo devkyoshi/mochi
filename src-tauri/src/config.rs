@@ -18,11 +18,15 @@ pub struct AppConfig {
     pub monitor: Option<String>,
     /// Mascot sounds on/off.
     pub sound: bool,
+    /// Chosen Ops Memory directory (set by the setup wizard).
+    pub ops_memory_path: Option<String>,
+    /// True once the setup wizard has finished.
+    pub setup_complete: bool,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
-        Self { hotkey: DEFAULT_HOTKEY.to_string(), auto_collapse: true, monitor: None, sound: true }
+        Self { hotkey: DEFAULT_HOTKEY.to_string(), auto_collapse: true, monitor: None, sound: true, ops_memory_path: None, setup_complete: false }
     }
 }
 
@@ -65,6 +69,8 @@ mod tests {
             auto_collapse: false,
             monitor: Some("DISPLAY2".into()),
             sound: false,
+            ops_memory_path: Some("D:/ops".into()),
+            setup_complete: true,
         };
         save(dir.path(), &cfg).unwrap();
         assert_eq!(load(dir.path()), cfg);
@@ -99,6 +105,7 @@ mod tests {
     fn serializes_with_camel_case_keys() {
         let json = serde_json::to_string(&AppConfig::default()).unwrap();
         assert!(json.contains("autoCollapse"));
+        assert!(json.contains("opsMemoryPath") && json.contains("setupComplete"));
         assert!(!json.contains("auto_collapse"));
     }
 }

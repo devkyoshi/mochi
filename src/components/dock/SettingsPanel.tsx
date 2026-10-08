@@ -21,6 +21,14 @@ export function SettingsPanel({ config, error, onChange }: SettingsPanelProps) {
       <p className="text-neutral-400">
         Show/hide shortcut: <kbd className="rounded bg-white/10 px-1.5 py-0.5">{config.hotkey}</kbd>
       </p>
+      <p className="truncate text-neutral-400">Ops Memory: {config.opsMemoryPath ?? "not set"}</p>
+      <button
+        type="button"
+        onClick={() => onChange({ setupComplete: false })}
+        className="rounded-full bg-white/10 px-3 py-1 text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-sky-400"
+      >
+        Re-run setup
+      </button>
       {error && (
         <p role="alert" className="text-amber-300">
           {error}

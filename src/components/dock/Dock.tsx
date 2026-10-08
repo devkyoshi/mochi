@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useDock } from "../../lib/dock/useDock";
+import { Wizard } from "../wizard/Wizard";
 import type { TabId } from "../../lib/dock/dockState";
 import { MascotDevPanel } from "../mascot";
 import { Pill } from "./Pill";
@@ -12,8 +14,14 @@ const PLACEHOLDERS: Record<Exclude<TabId, "settings">, string> = {
 };
 
 export default function Dock() {
-  const { state, config, error, send, updateConfig } = useDock();
+  const { state, config, error, loaded, send, updateConfig } = useDock();
   const { expanded, tab } = state;
+  const needsSetup = loaded && !config.setupComplete;
+
+  // First run: open the dock straight into the setup wizard.
+  useEffect(() => {
+    if (needsSetup) send({ type: "expand" });
+  }, [needsSetup, send]);
 
   return (
     <div className="flex h-screen w-screen items-start justify-center overflow-hidden">
@@ -22,7 +30,9 @@ export default function Dock() {
         data-expanded={expanded}
         className="dock flex flex-col overflow-hidden bg-neutral-900/95 text-neutral-100 shadow-lg ring-1 ring-white/10"
       >
-        {expanded ? (
+        {expanded && needsSetup ? (
+          <Wizard onFinish={updateConfig} />
+        ) : expanded ? (
           <>
             <TabBar
               tab={tab}

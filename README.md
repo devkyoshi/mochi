@@ -4,7 +4,7 @@ A small animated desktop companion that lives at the top of your screen and give
 
 Mochi reads and edits **Ops Memory** — a git-tracked directory of markdown files about your VMs and projects — which Claude Code keeps up to date automatically from any project via a global rule and hooks.
 
-> Status: **in development** (Stages 0-4 done). See [docs/PROGRESS.md](docs/PROGRESS.md).
+> Status: **in development** (Stages 0-5 done). See [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## How it works
 
@@ -30,7 +30,7 @@ Tauri v2 (Rust) · React + TypeScript + Tailwind · Rive mascot (SVG/CSS placeho
 | 2 | Secret scanner | Done |
 | 3 | Window shell (dock) | Done |
 | 4 | Mascot | Done |
-| 5 | Setup wizard | Not started |
+| 5 | Setup wizard | Done |
 | 6 | Browse / edit / search / live refresh | Not started |
 | 7 | Quick Add | Not started |
 | 8 | Claude integration | Not started |

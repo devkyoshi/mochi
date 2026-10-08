@@ -10,6 +10,7 @@ export function useDock() {
   const [state, dispatch] = useReducer(dockReducer, initialDockState);
   const [config, setConfigState] = useState<api.AppConfig>(api.DEFAULT_CONFIG);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const followCursor = useRef(false);
 
   // Load persisted settings.
@@ -22,7 +23,10 @@ export function useDock() {
         setConfigState(c);
         dispatch({ type: "setAutoCollapse", value: c.autoCollapse });
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setLoaded(true);
+      });
     return () => {
       alive = false;
     };
@@ -85,5 +89,5 @@ export function useDock() {
 
   const send = useCallback((action: DockAction) => dispatch(action), []);
 
-  return { state, config, error, send, updateConfig };
+  return { state, config, error, loaded, send, updateConfig };
 }

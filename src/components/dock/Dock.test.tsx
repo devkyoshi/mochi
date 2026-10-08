@@ -17,9 +17,11 @@ vi.mock("../../lib/api", async () => {
 import Dock from "./Dock";
 import { DEFAULT_CONFIG } from "../../lib/api";
 
+const CONFIG = { ...DEFAULT_CONFIG, setupComplete: true };
+
 beforeEach(() => {
   for (const k of Object.keys(handlers)) delete handlers[k];
-  api.getConfig.mockReset().mockResolvedValue(DEFAULT_CONFIG);
+  api.getConfig.mockReset().mockResolvedValue(CONFIG);
   api.setConfig.mockReset().mockImplementation((c) => Promise.resolve(c));
   api.setDockState.mockReset().mockResolvedValue(undefined);
   api.onDockEvent.mockReset().mockImplementation((event: string, cb: () => void) => {
@@ -65,7 +67,7 @@ describe("Dock", () => {
   });
 
   it("stays open on blur when auto-collapse is off", async () => {
-    api.getConfig.mockResolvedValue({ ...DEFAULT_CONFIG, autoCollapse: false });
+    api.getConfig.mockResolvedValue({ ...CONFIG, autoCollapse: false });
     render(<Dock />);
     await waitFor(() => expect(handlers.blur).toBeDefined());
     await waitFor(() => expect(api.getConfig).toHaveBeenCalled());
@@ -85,9 +87,10 @@ describe("Dock", () => {
 
   it("saves the sound toggle", async () => {
     render(<Dock />);
+    await act(async () => undefined);
     fireEvent.click(screen.getByRole("button", { name: "Open Mochi" }));
     fireEvent.click(screen.getByRole("button", { name: "Mute sounds" }));
-    await waitFor(() => expect(api.setConfig).toHaveBeenCalledWith({ ...DEFAULT_CONFIG, sound: false }));
+    await waitFor(() => expect(api.setConfig).toHaveBeenCalledWith({ ...CONFIG, sound: false }));
     expect(await screen.findByRole("button", { name: "Unmute sounds" })).toBeInTheDocument();
   });
 
@@ -98,5 +101,27 @@ describe("Dock", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Settings" }));
     fireEvent.click(screen.getByLabelText(/Collapse when I click elsewhere/));
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid hotkey");
+  });
+  it("opens straight into the setup wizard on first run", async () => {
+    api.getConfig.mockResolvedValue(DEFAULT_CONFIG);
+    render(<Dock />);
+    expect(await screen.findByTestId("wizard")).toBeInTheDocument();
+    expect(dock()).toHaveAttribute("data-expanded", "true");
+  });
+
+  it("does not show the wizard before the config has loaded", () => {
+    api.getConfig.mockReturnValue(new Promise(() => undefined));
+    render(<Dock />);
+    expect(screen.queryByTestId("wizard")).toBeNull();
+  });
+
+  it("re-runs setup from settings", async () => {
+    render(<Dock />);
+    await waitFor(() => expect(api.getConfig).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Open Mochi" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Re-run setup" }));
+    await waitFor(() => expect(api.setConfig).toHaveBeenCalledWith({ ...CONFIG, setupComplete: false }));
+    expect(await screen.findByTestId("wizard")).toBeInTheDocument();
   });
 });
