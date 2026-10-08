@@ -44,6 +44,9 @@ impl AppConfig {
     pub fn sanitized(mut self) -> Self {
         self.stale_days = self.stale_days.clamp(MIN_STALE_DAYS, MAX_STALE_DAYS);
         self.sleepy_minutes = self.sleepy_minutes.clamp(MIN_SLEEPY_MINUTES, MAX_SLEEPY_MINUTES);
+        if !matches!(self.claude_provider.as_deref(), None | Some("cli") | Some("api")) {
+            self.claude_provider = None;
+        }
         self
     }
 }
@@ -154,6 +157,16 @@ mod tests {
         assert_eq!((c.stale_days, c.sleepy_minutes), (MAX_STALE_DAYS, MIN_SLEEPY_MINUTES));
         let ok = AppConfig { stale_days: 45, sleepy_minutes: 20, ..AppConfig::default() };
         assert_eq!(ok.clone().sanitized(), ok);
+    }
+
+    #[test]
+    fn sanitized_drops_unknown_claude_providers() {
+        for ok in [None, Some("cli"), Some("api")] {
+            let c = AppConfig { claude_provider: ok.map(String::from), ..AppConfig::default() }.sanitized();
+            assert_eq!(c.claude_provider.as_deref(), ok);
+        }
+        let bad = AppConfig { claude_provider: Some("rm -rf".into()), ..AppConfig::default() }.sanitized();
+        assert_eq!(bad.claude_provider, None);
     }
 
     #[test]

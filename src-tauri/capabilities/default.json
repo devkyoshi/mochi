@@ -1,13 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the dock window",
+  "description": "Least-privilege capability for the dock window: listen to backend events and open the native folder picker. All file, git, Claude and Claude Code access goes through Mochi's own audited Rust commands.",
   "windows": [
     "main"
   ],
   "permissions": [
-    "core:default",
-    "opener:default",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
     "dialog:allow-open"
   ]
 }

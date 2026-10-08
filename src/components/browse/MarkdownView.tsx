@@ -1,4 +1,4 @@
-import Markdown from "react-markdown";
+import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { parseMarkdown, readFrontmatter } from "../../lib/opsMemory";
 
@@ -20,6 +20,20 @@ function frontmatterFields(doc: ReturnType<typeof parseMarkdown>): [string, unkn
   }
 }
 
+/**
+ * Notes can contain links and images from any source. Inside the app window a link would navigate the
+ * webview away from Mochi and an image would fetch a remote URL, so neither is rendered live: links show
+ * their text (with the address as a tooltip) and images show their alt text.
+ */
+const SAFE_COMPONENTS: Components = {
+  a: ({ href, children }) => (
+    <span className="text-sky-300 underline decoration-dotted" title={href} data-link>
+      {children}
+    </span>
+  ),
+  img: ({ alt }) => <span className="text-neutral-500">[image{alt ? `: ${alt}` : ""}]</span>,
+};
+
 /** Renders a markdown file: frontmatter as small chips, body as markdown (no raw HTML). */
 export function MarkdownView({ content }: MarkdownViewProps) {
   const doc = parseMarkdown(content);
@@ -37,7 +51,9 @@ export function MarkdownView({ content }: MarkdownViewProps) {
           ))}
         </dl>
       )}
-      <Markdown remarkPlugins={[remarkGfm]}>{doc.body}</Markdown>
+      <Markdown remarkPlugins={[remarkGfm]} components={SAFE_COMPONENTS}>
+        {doc.body}
+      </Markdown>
     </article>
   );
 }

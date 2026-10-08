@@ -82,9 +82,24 @@ fn check_writable(dir: &Path) -> Result<(), String> {
     }
 }
 
+/// Settings applied to every git call so the chosen folder's own repo configuration cannot run code
+/// (hooks, fsmonitor) or block on a signing prompt. Ops Memory may be a repo someone else created.
+const GIT_HARDENING: [&str; 8] = [
+    "-c",
+    "core.hooksPath=.mochi-no-hooks",
+    "-c",
+    "core.fsmonitor=false",
+    "-c",
+    "commit.gpgsign=false",
+    "-c",
+    "tag.gpgsign=false",
+];
+
 pub(crate) fn run_git(dir: &Path, args: &[&str]) -> Result<String, String> {
     let out = Command::new("git")
+        .args(GIT_HARDENING)
         .args(args)
+        .env("GIT_TERMINAL_PROMPT", "0")
         .current_dir(dir)
         .output()
         .map_err(|e| format!("Could not run git (is it installed?): {e}"))?;
@@ -181,6 +196,17 @@ pub fn resolve_target(chosen: &Path, create_new: bool) -> PathBuf {
     } else {
         chosen.to_path_buf()
     }
+}
+
+/// A saved Ops Memory path must be an existing folder that passes the same checks as the wizard
+/// (not a root, system folder, or the home folder). Used when settings are saved, so a compromised UI
+/// cannot point Mochi at an arbitrary location.
+pub fn validate_saved_path(path: &str, home: Option<&Path>) -> Result<(), String> {
+    let p = Path::new(path);
+    if !p.is_dir() {
+        return Err("The Ops Memory folder does not exist.".into());
+    }
+    validate_directory(p, home)
 }
 
 /// Tauri command: validate a candidate directory without changing anything.
@@ -284,6 +310,22 @@ mod tests {
     }
 
     #[test]
+    fn saved_paths_must_exist_and_pass_the_wizard_checks() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(validate_saved_path(dir.path().to_str().unwrap(), None).is_ok());
+        assert!(validate_saved_path(dir.path().join("missing").to_str().unwrap(), None).is_err());
+        assert!(validate_saved_path("relative/dir", None).is_err());
+        assert!(validate_saved_path("", None).is_err());
+        let file = dir.path().join("f.md");
+        fs::write(&file, "x").unwrap();
+        assert!(validate_saved_path(file.to_str().unwrap(), None).is_err());
+        let home = dir.path().to_path_buf();
+        assert!(validate_saved_path(dir.path().to_str().unwrap(), Some(&home)).unwrap_err().contains("home"));
+        let sys = if cfg!(windows) { "C:/Windows" } else { "/etc" };
+        assert!(validate_saved_path(sys, None).is_err());
+    }
+
+    #[test]
     fn resolve_target_appends_folder_name_only_for_new() {
         let p = Path::new("/x/y");
         assert_eq!(resolve_target(p, true), p.join("ops-memory"));
@@ -352,6 +394,59 @@ mod tests {
         // Existing files are committed together with the scaffold.
         let tracked = run_git(root, &["ls-files"]).unwrap();
         assert!(tracked.contains("vms/old.md") && tracked.contains("inbox.md"));
+    }
+
+    // ---- security: a repo's own configuration must not run code through Mochi's git calls
+
+    fn plant_pre_commit_hook(root: &Path) {
+        let hook = root.join(".git").join("hooks").join("pre-commit");
+        fs::create_dir_all(hook.parent().unwrap()).unwrap();
+        fs::write(&hook, "#!/bin/sh\ntouch hook-ran\n").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&hook, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+    }
+
+    #[test]
+    fn repo_hooks_do_not_run_when_mochi_commits() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        scaffold(root, "2026-10").unwrap();
+        plant_pre_commit_hook(root);
+
+        // Control: plain git DOES run the planted hook, so the test below proves something.
+        fs::write(root.join("control.txt"), "x").unwrap();
+        let _ = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t", "add", "-A"])
+            .current_dir(root)
+            .output();
+        let _ = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-m", "control"])
+            .current_dir(root)
+            .output();
+        if !root.join("hook-ran").exists() {
+            eprintln!("SKIPPED: hooks cannot run here");
+            return; // hooks cannot run on this machine (no sh), nothing to defend against
+        }
+        fs::remove_file(root.join("hook-ran")).unwrap();
+
+        crate::store::write_file(root, "vms/a.md", "---\ntype: vm\nname: a\n---\n", "add a").unwrap();
+        assert!(!root.join("hook-ran").exists(), "the repository's pre-commit hook ran");
+        assert_eq!(run_git(root, &["log", "-1", "--format=%s"]).unwrap(), "mochi: add a");
+    }
+
+    #[test]
+    fn commit_signing_config_cannot_block_mochi() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        scaffold(root, "2026-10").unwrap();
+        // A signing program that does not exist would make a normal commit fail.
+        run_git(root, &["config", "--local", "commit.gpgsign", "true"]).unwrap();
+        run_git(root, &["config", "--local", "gpg.program", "definitely-not-a-real-gpg"]).unwrap();
+        crate::store::write_file(root, "vms/b.md", "---\ntype: vm\nname: b\n---\n", "add b").unwrap();
+        assert_eq!(run_git(root, &["log", "-1", "--format=%s"]).unwrap(), "mochi: add b");
     }
 
     #[test]

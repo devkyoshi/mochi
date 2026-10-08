@@ -4,7 +4,7 @@ A small animated desktop companion that lives at the top of your screen and give
 
 Mochi reads and edits **Ops Memory** — a git-tracked directory of markdown files about your VMs and projects — which Claude Code keeps up to date automatically from any project via a global rule and hooks.
 
-> Status: **in development** (Stages 0-10 done). See [docs/PROGRESS.md](docs/PROGRESS.md).
+> Status: **in development** (Stages 0-11 done; see docs/PROGRESS.md for what is not verified). See [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## How it works
 
@@ -36,7 +36,7 @@ Tauri v2 (Rust) · React + TypeScript + Tailwind · Rive mascot (SVG/CSS placeho
 | 8 | Claude integration | Done |
 | 9 | Global rule & hook installer | Done |
 | 10 | Alerts, digest, polish | Done |
-| 11 | Packaging & hardening | Not started |
+| 11 | Packaging & hardening | Done |
 
 Details for each stage: [docs/PLAN.md](docs/PLAN.md).
 
@@ -51,6 +51,7 @@ Details for each stage: [docs/PLAN.md](docs/PLAN.md).
 ## Docs
 
 - [docs/schema.md](docs/schema.md), [docs/mascot.md](docs/mascot.md), [docs/platform-notes.md](docs/platform-notes.md), [docs/claude-integration.md](docs/claude-integration.md), [docs/global-rule.md](docs/global-rule.md)
+- [docs/security-review.md](docs/security-review.md), [docs/release.md](docs/release.md)
 - [docs/PLAN.md](docs/PLAN.md) — per-stage plan (goal, tasks, risks, done-when)
 - [docs/PROGRESS.md](docs/PROGRESS.md) — status tracker and log
 - [docs/DECISION.md](docs/DECISION.md) — open decisions and recommended defaults
@@ -66,4 +67,4 @@ Details for each stage: [docs/PLAN.md](docs/PLAN.md).
 
 ## Getting started
 
-`npm install`, then `npm run tauri dev`. Tests: `npm test` and `cd src-tauri && cargo test`. Stage plan: [docs/PLAN.md](docs/PLAN.md).
+`npm install`, then `npm run tauri dev` (needs Rust, Node 22+, git). Build an installer with `npm run tauri build` (see docs/release.md). Tests: `npm test` and `cd src-tauri && cargo test`. Stage plan: [docs/PLAN.md](docs/PLAN.md).

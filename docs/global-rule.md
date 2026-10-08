@@ -12,8 +12,8 @@ Written in exec form (`command` + `args`, no shell) because the default Windows 
 
 ```json
 { "hooks": {
-  "Stop":       [ { "hooks": [ { "type": "command", "command": "C:/.../com.mochi.app/hooks/mochi-hook.exe", "args": ["stop"],        "timeout": 10 } ] } ],
-  "SessionEnd": [ { "hooks": [ { "type": "command", "command": "C:/.../com.mochi.app/hooks/mochi-hook.exe", "args": ["session-end"], "timeout": 10 } ] } ]
+  "Stop":       [ { "hooks": [ { "type": "command", "command": "C:/.../com.mochi.desktop/hooks/mochi-hook.exe", "args": ["stop"],        "timeout": 10 } ] } ],
+  "SessionEnd": [ { "hooks": [ { "type": "command", "command": "C:/.../com.mochi.desktop/hooks/mochi-hook.exe", "args": ["session-end"], "timeout": 10 } ] } ]
 } }
 ```
 
@@ -33,5 +33,5 @@ Stop input includes `stop_hook_active`; blocking = JSON `decision: block` on std
 
 ## Limits and notes
 - The transcript can lag behind the conversation, so the Stop hook may occasionally miss the very latest tool call (it then allows).
-- The hook helper must sit next to the app executable to be installed. In `tauri dev` run `cargo build --bin mochi-hook` first; packaging it with release builds is Stage 11.
+- The hook helper ships with the app as a Tauri sidecar (`bundle.externalBin`, built by `npm run prepare:hook`) and sits next to the app executable; the installer copies it to `<app config dir>/hooks/`. `tauri dev` builds it automatically. See `docs/release.md`.
 - Not verified live: a real Claude Code session running the installed hooks (needs a manual run; tests cover the binary as a child process with real JSON on stdin).

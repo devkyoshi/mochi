@@ -45,6 +45,14 @@ fn ops_path(state: &State<AppState>, explicit: Option<String>) -> Result<String,
     Ok(path)
 }
 
+/// A real executable is far larger than the placeholder `build.rs` creates for fresh checkouts.
+const MIN_BINARY_BYTES: u64 = 10_000;
+
+/// True when `path` looks like a real hook helper rather than a build placeholder.
+pub fn looks_like_real_binary(path: &Path) -> bool {
+    fs::metadata(path).map(|m| m.is_file() && m.len() >= MIN_BINARY_BYTES).unwrap_or(false)
+}
+
 /// Dry run: what installing (or uninstalling) would change. Writes nothing.
 #[tauri::command]
 pub fn integration_preview(
@@ -90,7 +98,7 @@ pub fn integration_install(
         .parent()
         .map(|p| p.join(hook_file_name()))
         .ok_or("Could not locate the app folder.")?;
-    if !source.is_file() {
+    if !looks_like_real_binary(&source) {
         return Err(format!(
             "The hook helper ({}) was not found next to the app. Build it with `cargo build --bin mochi-hook`.",
             hook_file_name()
@@ -117,4 +125,29 @@ pub fn integration_uninstall(app: AppHandle, state: State<AppState>) -> Result<I
 #[tauri::command]
 pub fn integration_status(app: AppHandle) -> Result<IntegrationStatus, String> {
     Ok(install::status(&claude_dir(&app)?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn placeholders_and_missing_files_are_not_accepted_as_the_hook_helper() {
+        let dir = tempfile::tempdir().unwrap();
+        let placeholder = dir.path().join("mochi-hook");
+        fs::write(&placeholder, "MOCHI-HOOK-PLACEHOLDER: run `npm run prepare:hook`
+").unwrap();
+        assert!(!looks_like_real_binary(&placeholder));
+        assert!(!looks_like_real_binary(&dir.path().join("missing")));
+        assert!(!looks_like_real_binary(dir.path()));
+        let big = dir.path().join("big");
+        fs::write(&big, vec![0u8; 20_000]).unwrap();
+        assert!(looks_like_real_binary(&big));
+    }
+
+    #[test]
+    fn hook_file_name_matches_the_platform() {
+        assert_eq!(hook_file_name().ends_with(".exe"), cfg!(windows));
+        assert!(hook_file_name().starts_with("mochi-hook"));
+    }
 }

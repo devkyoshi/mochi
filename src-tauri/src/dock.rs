@@ -80,6 +80,12 @@ pub fn get_config(state: State<AppState>) -> Result<AppConfig, String> {
 pub fn set_config(app: AppHandle, state: State<AppState>, config: AppConfig) -> Result<AppConfig, String> {
     let config = config.sanitized();
     let old = state.config.lock().map_err(|e| e.to_string())?.clone();
+    if config.ops_memory_path != old.ops_memory_path {
+        if let Some(path) = &config.ops_memory_path {
+            let home = app.path().home_dir().ok();
+            crate::ops::validate_saved_path(path, home.as_deref())?;
+        }
+    }
     if config.hotkey != old.hotkey {
         if let Err(e) = register_hotkey(&app, &config.hotkey) {
             let _ = register_hotkey(&app, &old.hotkey);

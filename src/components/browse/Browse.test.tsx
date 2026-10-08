@@ -45,6 +45,28 @@ describe("MarkdownView", () => {
     expect(document.querySelector("img")).toBeNull();
   });
 
+  it("never renders live links or remote images (they would navigate or load inside the app)", () => {
+    render(
+      <MarkdownView
+        content={[
+          "See [the docs](https://evil.example/x) and [js](javascript:alert(1)).",
+          "",
+          "![tracker](https://evil.example/pixel.png)",
+          "",
+          "![](http://evil.example/p2.png)",
+          "",
+        ].join("\n")}
+      />,
+    );
+    expect(document.querySelector("a")).toBeNull();
+    expect(document.querySelector("img")).toBeNull();
+    const link = screen.getByText("the docs");
+    expect(link.tagName).toBe("SPAN");
+    expect(link).toHaveAttribute("title", "https://evil.example/x");
+    expect(screen.getByText("[image: tracker]")).toBeInTheDocument();
+    expect(screen.getByText("[image]")).toBeInTheDocument();
+  });
+
   it("copes with invalid frontmatter", () => {
     render(<MarkdownView content={"---\na: [oops\n---\nbody text\n"} />);
     expect(screen.queryByTestId("frontmatter")).toBeNull();
