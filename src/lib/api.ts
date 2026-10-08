@@ -55,3 +55,37 @@ export const validateOpsDirectory = (path: string, createNew: boolean): Promise<
 /** Scaffold the Ops Memory layout and git repo. */
 export const setupOpsMemory = (path: string, createNew: boolean): Promise<SetupResult> =>
   invoke<SetupResult>("setup_ops_memory", { path, createNew });
+
+export interface FileInfo {
+  path: string;
+  size: number;
+}
+
+/** Result of saving a file. `blocked` carries redacted secret findings and nothing was written. */
+export type WriteOutcome =
+  | { status: "saved"; commit: string }
+  | { status: "unchanged" }
+  | { status: "blocked"; findings: { kind: string; line: number; preview: string }[] };
+
+export interface HistoryEntry {
+  commit: string;
+  subject: string;
+  date: string;
+}
+
+export const listOpsFiles = (): Promise<FileInfo[]> => invoke<FileInfo[]>("list_ops_files");
+
+export const readOpsFile = (path: string): Promise<string> => invoke<string>("read_ops_file", { path });
+
+export const writeOpsFile = (path: string, content: string, message: string): Promise<WriteOutcome> =>
+  invoke<WriteOutcome>("write_ops_file", { path, content, message });
+
+/** Revert the latest commit; resolves to the revert's short hash. */
+export const undoLastChange = (): Promise<string> => invoke<string>("undo_last_change");
+
+export const opsHistory = (path: string | null, limit: number): Promise<HistoryEntry[]> =>
+  invoke<HistoryEntry[]>("ops_history", { path, limit });
+
+/** Subscribe to external edits of Ops Memory files (relative paths). Resolves to an unsubscribe function. */
+export const onOpsChanged = (callback: (paths: string[]) => void): Promise<() => void> =>
+  listen<string[]>("ops://changed", (e) => callback(e.payload));

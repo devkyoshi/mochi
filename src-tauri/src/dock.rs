@@ -12,6 +12,10 @@ pub const MAIN_WINDOW: &str = "main";
 pub struct AppState {
     pub config: Mutex<AppConfig>,
     pub config_dir: PathBuf,
+    /// Paths Mochi just wrote (so the watcher ignores them).
+    pub self_writes: Mutex<crate::store::SelfWrites>,
+    /// Active file watcher on the Ops Memory folder (dropping it stops watching).
+    pub watcher: Mutex<Option<notify::RecommendedWatcher>>,
 }
 
 fn to_info(m: &tauri::Monitor) -> MonitorInfo {
@@ -81,6 +85,9 @@ pub fn set_config(app: AppHandle, state: State<AppState>, config: AppConfig) -> 
     }
     config::save(&state.config_dir, &config).map_err(|e| e.to_string())?;
     *state.config.lock().map_err(|e| e.to_string())? = config.clone();
+    if config.ops_memory_path != old.ops_memory_path || config.setup_complete != old.setup_complete {
+        crate::opsfs::restart_watcher(&app);
+    }
     Ok(config)
 }
 

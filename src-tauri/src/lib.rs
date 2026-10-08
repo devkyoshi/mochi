@@ -2,7 +2,9 @@ mod config;
 mod dock;
 mod geometry;
 mod ops;
+mod opsfs;
 mod scanner;
+mod store;
 
 use dock::AppState;
 use std::sync::Mutex;
@@ -29,7 +31,13 @@ pub fn run() {
             let config_dir = app.path().app_config_dir()?;
             let cfg = config::load(&config_dir);
             let hotkey = cfg.hotkey.clone();
-            app.manage(AppState { config: Mutex::new(cfg), config_dir });
+            app.manage(AppState {
+                config: Mutex::new(cfg),
+                config_dir,
+                self_writes: Mutex::new(Default::default()),
+                watcher: Mutex::new(None),
+            });
+            opsfs::restart_watcher(app.handle());
 
             if let Err(e) = dock::register_hotkey(app.handle(), &hotkey) {
                 eprintln!("hotkey: {e}");
@@ -49,7 +57,12 @@ pub fn run() {
             dock::set_config,
             dock::set_dock_state,
             ops::validate_ops_directory,
-            ops::setup_ops_memory
+            ops::setup_ops_memory,
+            opsfs::list_ops_files,
+            opsfs::read_ops_file,
+            opsfs::write_ops_file,
+            opsfs::undo_last_change,
+            opsfs::ops_history
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

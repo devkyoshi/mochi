@@ -82,7 +82,7 @@ fn check_writable(dir: &Path) -> Result<(), String> {
     }
 }
 
-fn run_git(dir: &Path, args: &[&str]) -> Result<String, String> {
+pub(crate) fn run_git(dir: &Path, args: &[&str]) -> Result<String, String> {
     let out = Command::new("git")
         .args(args)
         .current_dir(dir)
@@ -95,7 +95,7 @@ fn run_git(dir: &Path, args: &[&str]) -> Result<String, String> {
     }
 }
 
-fn has_git_identity(dir: &Path) -> bool {
+pub(crate) fn has_git_identity(dir: &Path) -> bool {
     run_git(dir, &["config", "user.name"]).map(|s| !s.is_empty()).unwrap_or(false)
         && run_git(dir, &["config", "user.email"]).map(|s| !s.is_empty()).unwrap_or(false)
 }
@@ -154,6 +154,8 @@ pub fn scaffold(root: &Path, month: &str) -> Result<SetupResult, String> {
     let git_initialized = !root.join(".git").exists();
     if git_initialized {
         run_git(root, &["init", "-b", "main"])?;
+        // Files must stay byte-identical (LF) so edits and reverts never rewrite line endings.
+        run_git(root, &["config", "core.autocrlf", "false"])?;
     }
     run_git(root, &["add", "-A"])?;
     if !created.is_empty() || git_initialized {
@@ -305,6 +307,7 @@ mod tests {
         assert_eq!(log, "mochi: initialize Ops Memory");
         assert_eq!(run_git(&root, &["status", "--porcelain"]).unwrap(), "");
         assert!(run_git(&root, &["branch", "--show-current"]).unwrap() == "main");
+        assert_eq!(run_git(&root, &["config", "--local", "core.autocrlf"]).unwrap(), "false");
     }
 
     #[test]

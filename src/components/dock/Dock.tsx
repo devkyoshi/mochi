@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { useDock } from "../../lib/dock/useDock";
-import { Wizard } from "../wizard/Wizard";
 import type { TabId } from "../../lib/dock/dockState";
+import { useOpsMemory } from "../../lib/ops/useOpsMemory";
+import { Browse } from "../browse/Browse";
+import { Home } from "../home/Home";
 import { MascotDevPanel } from "../mascot";
+import { Wizard } from "../wizard/Wizard";
 import { Pill } from "./Pill";
 import { SettingsPanel } from "./SettingsPanel";
 import { TabBar } from "./TabBar";
 
-const PLACEHOLDERS: Record<Exclude<TabId, "settings">, string> = {
-  home: "Your VMs and recent changes will appear here.",
+const PLACEHOLDERS: Record<Extract<TabId, "chat" | "add">, string> = {
   chat: "Ask Claude about your Ops Memory.",
   add: "Quickly log a change or note.",
 };
@@ -17,6 +19,7 @@ export default function Dock() {
   const { state, config, error, loaded, send, updateConfig } = useDock();
   const { expanded, tab } = state;
   const needsSetup = loaded && !config.setupComplete;
+  const ops = useOpsMemory(loaded && config.setupComplete);
 
   // First run: open the dock straight into the setup wizard.
   useEffect(() => {
@@ -40,23 +43,33 @@ export default function Dock() {
               onSelect={(t) => send({ type: "selectTab", tab: t })}
               onToggleSound={() => void updateConfig({ sound: !config.sound })}
             />
-            <section role="tabpanel" className="m-4 mt-3 flex-1 rounded-2xl bg-white/5 p-4 text-neutral-300">
+            <section role="tabpanel" className="m-4 mt-3 min-h-0 flex-1 overflow-auto rounded-2xl bg-white/5 p-4 text-neutral-300">
               {tab === "settings" ? (
                 <SettingsPanel config={config} error={error} onChange={(p) => void updateConfig(p)} />
-              ) : (
-                <>
-                  <p>{PLACEHOLDERS[tab]}</p>
-                  {import.meta.env.DEV && tab === "home" && (
+              ) : tab === "home" ? (
+                <Home
+                  data={ops}
+                  loading={ops.loading}
+                  error={ops.error}
+                  externalChange={ops.externalChange}
+                  changedPaths={ops.changedPaths}
+                  onDismissChange={ops.clearExternalChange}
+                >
+                  {import.meta.env.DEV && (
                     <div className="mt-3">
                       <MascotDevPanel />
                     </div>
                   )}
-                </>
+                </Home>
+              ) : tab === "browse" ? (
+                <Browse data={ops} runSearch={ops.runSearch} reload={ops.reload} />
+              ) : (
+                <p>{PLACEHOLDERS[tab]}</p>
               )}
             </section>
           </>
         ) : (
-          <Pill onClick={() => send({ type: "expand" })} />
+          <Pill onClick={() => send({ type: "expand" })} hasNewChange={ops.externalChange} />
         )}
       </div>
     </div>

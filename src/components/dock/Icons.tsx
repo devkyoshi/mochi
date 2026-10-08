@@ -46,3 +46,9 @@ export const SoundOffIcon = () => (
     <path d="M17 9l5 6M22 9l-5 6" />
   </svg>
 );
+export const BrowseIcon = () => (
+  <svg {...base}>
+    <path d="M4 4h12l4 4v12H4z" />
+    <path d="M8 12h8M8 16h8" />
+  </svg>
+);

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { TabId } from "../../lib/dock/dockState";
-import { ChatIcon, GearIcon, HomeIcon, PlusIcon, SoundOffIcon, SoundOnIcon } from "./Icons";
+import { BrowseIcon, ChatIcon, GearIcon, HomeIcon, PlusIcon, SoundOffIcon, SoundOnIcon } from "./Icons";
 
 interface TabBarProps {
   tab: TabId;
@@ -11,6 +11,7 @@ interface TabBarProps {
 
 const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
   { id: "home", label: "Home", icon: <HomeIcon /> },
+  { id: "browse", label: "Browse", icon: <BrowseIcon /> },
   { id: "chat", label: "Chat", icon: <ChatIcon /> },
   { id: "add", label: "Quick add", icon: <PlusIcon /> },
 ];

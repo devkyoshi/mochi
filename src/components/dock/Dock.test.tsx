@@ -7,6 +7,9 @@ const api = vi.hoisted(() => ({
   setConfig: vi.fn(),
   setDockState: vi.fn(),
   onDockEvent: vi.fn(),
+  listOpsFiles: vi.fn(),
+  readOpsFile: vi.fn(),
+  onOpsChanged: vi.fn(),
 }));
 
 vi.mock("../../lib/api", async () => {
@@ -24,6 +27,12 @@ beforeEach(() => {
   api.getConfig.mockReset().mockResolvedValue(CONFIG);
   api.setConfig.mockReset().mockImplementation((c) => Promise.resolve(c));
   api.setDockState.mockReset().mockResolvedValue(undefined);
+  api.listOpsFiles.mockReset().mockResolvedValue([]);
+  api.readOpsFile.mockReset().mockResolvedValue("");
+  api.onOpsChanged.mockReset().mockImplementation((cb: (p: string[]) => void) => {
+    handlers.opsChanged = cb as () => void;
+    return Promise.resolve(() => undefined);
+  });
   api.onDockEvent.mockReset().mockImplementation((event: string, cb: () => void) => {
     handlers[event] = cb;
     return Promise.resolve(() => undefined);
@@ -44,7 +53,7 @@ describe("Dock", () => {
     render(<Dock />);
     fireEvent.click(screen.getByRole("button", { name: "Open Mochi" }));
     expect(dock()).toHaveAttribute("data-expanded", "true");
-    expect(screen.getAllByRole("tab").length).toBe(4);
+    expect(screen.getAllByRole("tab").length).toBe(5);
     await waitFor(() => expect(api.setDockState).toHaveBeenCalledWith(true, false));
   });
 
@@ -107,6 +116,14 @@ describe("Dock", () => {
     render(<Dock />);
     expect(await screen.findByTestId("wizard")).toBeInTheDocument();
     expect(dock()).toHaveAttribute("data-expanded", "true");
+  });
+
+  it("shows the new-change mascot in the pill after an external edit", async () => {
+    render(<Dock />);
+    await waitFor(() => expect(handlers.opsChanged).toBeDefined());
+    expect(screen.getByRole("img")).toHaveAttribute("data-state", "idle");
+    act(() => (handlers.opsChanged as unknown as (p: string[]) => void)(["vms/a.md"]));
+    expect(screen.getByRole("img")).toHaveAttribute("data-state", "new-change");
   });
 
   it("does not show the wizard before the config has loaded", () => {
