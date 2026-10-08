@@ -99,8 +99,8 @@ Each has an npm equivalent: `npm run tauri dev`, `npm test`, `npm run lint`, `np
 ## First-run walkthrough
 
 1. **Welcome** → **Choose directory**: create a new `ops-memory` folder inside a parent you pick, or use an existing folder. Mochi refuses drive roots, system folders and your home folder, scaffolds the layout, and makes the first git commit.
-2. **Connect Claude** (skippable): choose *Claude Code* (uses your existing login) or *API key*, then **Test connection**.
-3. **Claude Code integration** (skippable): preview the exact changes to `~/.claude/CLAUDE.md` and `settings.json`, tick the consent box, install. You can update or remove it later in Settings.
+2. **Connect Claude** (optional: press **Skip for now**; you can connect later in Settings): choose *Claude Code* (uses your existing login) or *API key*, then **Test connection**.
+3. **Claude Code integration** (optional: **Skip for now**): preview the exact changes to `~/.claude/CLAUDE.md` and `settings.json`, tick the consent box, install. You can update or remove it later in Settings.
 4. **Preferences**: shortcut, collapse-on-blur, sounds. **Finish**.
 
 Then use the tabs: **Home** (counts, stale entries, recent changes, alerts, weekly digest), **Browse** (view, edit with a diff review, search, undo), **Chat**, **Quick add** (a note in seconds; `Ctrl/Cmd+Enter` saves), **Settings**. The tray icon offers Open, Show/hide dock and Quit.

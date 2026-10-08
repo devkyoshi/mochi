@@ -32,6 +32,7 @@ const buttonClass =
 export function Wizard({ onFinish }: WizardProps) {
   const [state, dispatch] = useReducer(wizardReducer, initialWizardState);
   const [busy, setBusy] = useState(false);
+  const [ruleInstalled, setRuleInstalled] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
   const { step, mode, chosenPath, validation } = state;
   const createNew = mode === "new";
@@ -77,6 +78,9 @@ export function Wizard({ onFinish }: WizardProps) {
   }
 
   const onDirectory = step === "directory";
+  // The Claude and Claude Code steps are optional: say so on the button until they are set up.
+  const skippable = (step === "claude" && !state.claudeProvider) || (step === "rule" && !ruleInstalled);
+  const nextLabel = step === "welcome" ? "Get started" : skippable ? "Skip for now" : "Next";
   const canCreate = onDirectory && validation.status === "ok" && !busy;
 
   return (
@@ -150,7 +154,7 @@ export function Wizard({ onFinish }: WizardProps) {
                 An optional global rule and two hooks make Claude Code update these notes after server work in any
                 project. You review every change first; you can skip this and do it later in Settings.
               </p>
-              <GlobalRuleSetup opsPath={state.createdPath} />
+              <GlobalRuleSetup opsPath={state.createdPath} onInstalledChange={setRuleInstalled} />
             </>
           )}
 
@@ -224,7 +228,7 @@ export function Wizard({ onFinish }: WizardProps) {
               disabled={!canAdvance(state) || busy}
               className={`${buttonClass} bg-sky-500 text-white`}
             >
-              {step === "welcome" ? "Get started" : "Next"}
+              {nextLabel}
             </button>
           )}
         </div>

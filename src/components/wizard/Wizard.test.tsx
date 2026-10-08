@@ -96,10 +96,10 @@ describe("Wizard", () => {
     await reachDirectoryReady();
     click("Create and continue");
     await screen.findByText("Connect Claude");
-    click("Next");
+    click("Skip for now");
     expect(screen.getByText("Keep notes up to date automatically")).toBeInTheDocument();
     expect(await screen.findByTestId("integration-status")).toHaveTextContent("Nothing on your machine has been changed");
-    click("Next");
+    click("Skip for now");
     fireEvent.change(screen.getByLabelText("Shortcut"), { target: { value: "Alt+M" } });
     fireEvent.click(screen.getByLabelText("Mascot sounds"));
     click("Next");
@@ -126,8 +126,8 @@ describe("Wizard", () => {
     await screen.findByText("Connect Claude");
     click("Test connection");
     await screen.findByText("Connected");
-    click("Next");
-    click("Next");
+    click("Next"); // connected, so no longer "Skip for now"
+    click("Skip for now");
     click("Next");
     click("Finish");
     await waitFor(() => expect(onFinish).toHaveBeenCalledWith(expect.objectContaining({ claudeProvider: "cli" })));
@@ -138,8 +138,8 @@ describe("Wizard", () => {
     await reachDirectoryReady();
     click("Create and continue");
     await screen.findByText("Connect Claude");
-    click("Next");
-    click("Next");
+    click("Skip for now");
+    click("Skip for now");
     fireEvent.change(screen.getByLabelText("Shortcut"), { target: { value: " " } });
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   });
@@ -150,10 +150,49 @@ describe("Wizard", () => {
     await reachDirectoryReady();
     click("Create and continue");
     await screen.findByText("Connect Claude");
-    click("Next");
-    click("Next");
+    click("Skip for now");
+    click("Skip for now");
     click("Next");
     click("Finish");
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not register hotkey");
+  });
+
+  it("the Claude step can be skipped without testing anything, and nothing is saved for it", async () => {
+    const onFinish = vi.fn().mockResolvedValue(null);
+    render(<Wizard onFinish={onFinish} />);
+    await reachDirectoryReady();
+    click("Create and continue");
+    await screen.findByText("Connect Claude");
+    expect(screen.getByRole("button", { name: "Skip for now" })).toBeEnabled();
+    click("Skip for now");
+    expect(api.claudeTest).not.toHaveBeenCalled();
+    click("Skip for now");
+    click("Next");
+    click("Finish");
+    await waitFor(() => expect(onFinish).toHaveBeenCalledWith(expect.objectContaining({ claudeProvider: null, setupComplete: true })));
+  });
+
+  it("the Claude step can still be skipped after a failed connection test", async () => {
+    api.claudeTest.mockRejectedValue("Claude Code was not found. Install it, or switch to an API key in Settings.");
+    render(<Wizard onFinish={vi.fn()} />);
+    await reachDirectoryReady();
+    click("Create and continue");
+    await screen.findByText("Connect Claude");
+    click("Test connection");
+    expect(await screen.findByRole("alert")).toHaveTextContent("not found");
+    click("Skip for now");
+    expect(screen.getByText("Keep notes up to date automatically")).toBeInTheDocument();
+  });
+
+  it("the Claude Code integration step says Next once it is installed", async () => {
+    api.integrationStatus.mockResolvedValue({ ruleInstalled: true, stopHook: true, sessionEndHook: true, settingsError: null });
+    render(<Wizard onFinish={vi.fn()} />);
+    await reachDirectoryReady();
+    click("Create and continue");
+    await screen.findByText("Connect Claude");
+    click("Skip for now");
+    await screen.findByTestId("integration-status");
+    expect(await screen.findByRole("button", { name: "Next" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip for now" })).toBeNull();
   });
 });

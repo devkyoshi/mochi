@@ -5,6 +5,8 @@ import { hasChanges, lineDiff } from "../../lib/opsMemory";
 interface GlobalRuleSetupProps {
   /** Ops Memory folder to put in the rule (the wizard passes it before it is saved). */
   opsPath?: string | null;
+  /** Called whenever the installed state is known or changes (the wizard uses it to label its button). */
+  onInstalledChange?: (installed: boolean) => void;
 }
 
 function DiffBox({ title, before, after }: { title: string; before: string | null; after: string }) {
@@ -39,7 +41,7 @@ const btn = "rounded-full px-3 py-1 text-sm focus-visible:outline-2 focus-visibl
  * Install, update or remove the Claude Code integration. Always shows a dry-run diff first and
  * needs explicit consent; existing files are backed up by the installer.
  */
-export function GlobalRuleSetup({ opsPath }: GlobalRuleSetupProps) {
+export function GlobalRuleSetup({ opsPath, onInstalledChange }: GlobalRuleSetupProps) {
   const [status, setStatus] = useState<api.IntegrationStatus | null>(null);
   const [plan, setPlan] = useState<api.InstallPlan | null>(null);
   const [mode, setMode] = useState<"install" | "uninstall" | null>(null);
@@ -61,6 +63,9 @@ export function GlobalRuleSetup({ opsPath }: GlobalRuleSetupProps) {
   }, [refresh]);
 
   const installed = !!status && (status.ruleInstalled || status.stopHook || status.sessionEndHook);
+  useEffect(() => {
+    if (status) onInstalledChange?.(installed);
+  }, [status, installed, onInstalledChange]);
 
   async function preview(next: "install" | "uninstall") {
     setError(null);
