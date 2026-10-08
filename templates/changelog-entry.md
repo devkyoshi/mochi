@@ -1,0 +1,1 @@
+- <YYYY-MM-DD> — <what happened, past tense> (vm: <vm-name>, project: <project-name>, tag: <deploy|config|incident|upgrade>, by: <claude-code|mochi|manual>)

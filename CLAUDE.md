@@ -22,7 +22,8 @@ Docs: `docs/PLAN.md` (stages), `docs/PROGRESS.md` (status), `docs/DECISION.md`, 
 - Do not touch the real `~/.claude` config from tests; use temp dirs.
 
 ## Layout
-- `src/` React UI; `src/lib/` pure logic (tested); `src/test/` test setup
+- `src/` React UI; `src/lib/` pure logic (tested); `src/lib/opsMemory/` schema, lossless frontmatter, INDEX gen; `src/test/` test setup
+- `templates/` Ops Memory file templates; `docs/schema.md` the schema
 - `src-tauri/src/` Rust commands (`lib.rs` registers them)
 
 ## Status
