@@ -19,6 +19,7 @@ vi.mock("../../lib/api", async () => {
 });
 
 import Dock from "./Dock";
+import { RELEASE_DELAY_MS, withAutoCollapseSuspended } from "../../lib/dock/autoCollapseGuard";
 import { DEFAULT_CONFIG } from "../../lib/api";
 
 const CONFIG = { ...DEFAULT_CONFIG, setupComplete: true };
@@ -75,6 +76,39 @@ describe("Dock", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Mochi" }));
     act(() => handlers.blur());
     expect(dock()).toHaveAttribute("data-expanded", "false");
+  });
+
+  it("ignores blur while a native dialog (folder picker) is open, then collapses normally again", async () => {
+    render(<Dock />);
+    await waitFor(() => expect(handlers.blur).toBeDefined());
+    await act(async () => undefined);
+    fireEvent.click(screen.getByRole("button", { name: "Open Mochi" }));
+
+    let closeDialog: () => void = () => undefined;
+    const dialog = withAutoCollapseSuspended(() => new Promise<void>((r) => (closeDialog = r)));
+    act(() => handlers.blur()); // the dialog stole focus
+    expect(dock()).toHaveAttribute("data-expanded", "true");
+
+    closeDialog();
+    await dialog;
+    act(() => handlers.blur()); // focus change right after closing is still part of the dialog
+    expect(dock()).toHaveAttribute("data-expanded", "true");
+
+    await new Promise((r) => setTimeout(r, RELEASE_DELAY_MS + 50));
+    act(() => handlers.blur());
+    expect(dock()).toHaveAttribute("data-expanded", "false");
+  });
+
+  it("never collapses on blur during first-run setup, so the wizard keeps its progress", async () => {
+    api.getConfig.mockResolvedValue(DEFAULT_CONFIG); // setup not complete
+    render(<Dock />);
+    await screen.findByTestId("wizard");
+    fireEvent.click(screen.getByRole("button", { name: "Get started" })); // now on the folder step
+    expect(screen.getByText("Where should the notes live?")).toBeInTheDocument();
+
+    act(() => handlers.blur());
+    expect(dock()).toHaveAttribute("data-expanded", "true");
+    expect(screen.getByText("Where should the notes live?")).toBeInTheDocument();
   });
 
   it("stays open on blur when auto-collapse is off", async () => {

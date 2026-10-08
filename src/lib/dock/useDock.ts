@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import * as api from "../api";
+import { isAutoCollapseSuspended } from "./autoCollapseGuard";
 import { dockReducer, initialDockState, type DockAction } from "./dockState";
 
 /** How long the CSS collapse animation runs before the OS window is shrunk. */
@@ -12,6 +13,11 @@ export function useDock() {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const followCursor = useRef(false);
+  const setupDone = useRef(false);
+  useEffect(() => {
+    // Before the config loads, treat setup as done so a normal start still collapses on blur.
+    setupDone.current = !loaded || config.setupComplete;
+  }, [loaded, config.setupComplete]);
 
   // Load persisted settings.
   useEffect(() => {
@@ -41,7 +47,11 @@ export function useDock() {
         followCursor.current = true;
         dispatch({ type: "toggle" });
       }),
-      api.onDockEvent("blur", () => dispatch({ type: "blur" })),
+      api.onDockEvent("blur", () => {
+        // Not while a native dialog is open, and never during first-run setup (progress would be lost).
+        if (isAutoCollapseSuspended() || !setupDone.current) return;
+        dispatch({ type: "blur" });
+      }),
     ])
       .then((fns) => {
         if (cancelled) fns.forEach((f) => f());

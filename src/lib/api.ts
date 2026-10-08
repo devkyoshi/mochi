@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import { withAutoCollapseSuspended } from "./dock/autoCollapseGuard";
 
 export type ClaudeProviderKind = "cli" | "api";
 
@@ -56,7 +57,7 @@ export interface SetupResult {
 
 /** Native folder picker. Resolves to null if cancelled. */
 export const pickFolder = async (): Promise<string | null> => {
-  const chosen = await open({ directory: true, multiple: false });
+  const chosen = await withAutoCollapseSuspended(() => open({ directory: true, multiple: false }));
   return typeof chosen === "string" ? chosen : null;
 };
 
