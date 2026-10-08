@@ -55,4 +55,17 @@ describe("Home", () => {
     render(<Home data={buildOpsData([])} {...base} error="Ops Memory is not set up yet." />);
     expect(screen.getByRole("alert")).toHaveTextContent("not set up");
   });
+
+  it("alerts about sessions that changed servers without updating Ops Memory", () => {
+    render(<Home data={buildOpsData(FILES)} {...base} reviewStubs={2} />);
+    expect(screen.getByTestId("review-alert")).toHaveTextContent("2 sessions changed servers without updating Ops Memory");
+  });
+
+  it("uses singular wording and hides the alert at zero", () => {
+    const { unmount } = render(<Home data={buildOpsData(FILES)} {...base} reviewStubs={1} />);
+    expect(screen.getByTestId("review-alert")).toHaveTextContent("1 session changed servers");
+    unmount();
+    render(<Home data={buildOpsData(FILES)} {...base} reviewStubs={0} />);
+    expect(screen.queryByTestId("review-alert")).toBeNull();
+  });
 });

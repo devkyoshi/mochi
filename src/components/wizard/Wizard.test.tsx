@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
+  integrationStatus: vi.fn(),
   claudeTest: vi.fn(),
   pickFolder: vi.fn(),
   validateOpsDirectory: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("../../lib/api", async () => {
 import { Wizard } from "./Wizard";
 
 beforeEach(() => {
+  api.integrationStatus.mockReset().mockResolvedValue({ ruleInstalled: false, stopHook: false, sessionEndHook: false, settingsError: null });
   api.pickFolder.mockReset().mockResolvedValue("D:/work");
   api.validateOpsDirectory.mockReset().mockResolvedValue("D:/work/ops-memory");
   api.setupOpsMemory.mockReset().mockResolvedValue({ path: "D:/work/ops-memory", gitInitialized: true, created: [] });
@@ -96,6 +98,7 @@ describe("Wizard", () => {
     await screen.findByText("Connect Claude");
     click("Next");
     expect(screen.getByText("Keep notes up to date automatically")).toBeInTheDocument();
+    expect(await screen.findByTestId("integration-status")).toHaveTextContent("Nothing on your machine has been changed");
     click("Next");
     fireEvent.change(screen.getByLabelText("Shortcut"), { target: { value: "Alt+M" } });
     fireEvent.click(screen.getByLabelText("Mascot sounds"));

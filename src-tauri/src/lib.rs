@@ -2,6 +2,9 @@ mod claude;
 mod config;
 mod dock;
 mod geometry;
+pub mod hook;
+mod install;
+mod integration;
 mod ops;
 mod opsfs;
 mod scanner;
@@ -71,7 +74,11 @@ pub fn run() {
             claude::claude_test,
             claude::claude_save_key,
             claude::claude_has_key,
-            claude::claude_delete_key
+            claude::claude_delete_key,
+            integration::integration_preview,
+            integration::integration_install,
+            integration::integration_uninstall,
+            integration::integration_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

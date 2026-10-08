@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   listOpsFiles: vi.fn(),
   readOpsFile: vi.fn(),
   onOpsChanged: vi.fn(),
+  integrationStatus: vi.fn(),
 }));
 
 vi.mock("../../lib/api", async () => {
@@ -27,6 +28,7 @@ beforeEach(() => {
   api.getConfig.mockReset().mockResolvedValue(CONFIG);
   api.setConfig.mockReset().mockImplementation((c) => Promise.resolve(c));
   api.setDockState.mockReset().mockResolvedValue(undefined);
+  api.integrationStatus.mockReset().mockResolvedValue({ ruleInstalled: false, stopHook: false, sessionEndHook: false, settingsError: null });
   api.listOpsFiles.mockReset().mockResolvedValue([]);
   api.readOpsFile.mockReset().mockResolvedValue("");
   api.onOpsChanged.mockReset().mockImplementation((cb: (p: string[]) => void) => {
@@ -124,6 +126,15 @@ describe("Dock", () => {
     expect(screen.getByRole("img")).toHaveAttribute("data-state", "idle");
     act(() => (handlers.opsChanged as unknown as (p: string[]) => void)(["vms/a.md"]));
     expect(screen.getByRole("img")).toHaveAttribute("data-state", "new-change");
+  });
+
+  it("shows the alert mascot when a hook left a review stub in the inbox", async () => {
+    api.listOpsFiles.mockResolvedValue([{ path: "inbox.md", size: 1 }]);
+    api.readOpsFile.mockResolvedValue(
+      "# Inbox\n- 2026-10-08 — Review needed: infra commands (ssh) ran in project x (cwd: /x) but Ops Memory was not updated (by: mochi-hook)\n",
+    );
+    render(<Dock />);
+    await waitFor(() => expect(screen.getByRole("img")).toHaveAttribute("data-state", "alert"));
   });
 
   it("does not show the wizard before the config has loaded", () => {

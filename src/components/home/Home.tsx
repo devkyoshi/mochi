@@ -8,6 +8,8 @@ interface HomeProps {
   error: string | null;
   externalChange: boolean;
   changedPaths: string[];
+  /** Sessions that changed servers without updating Ops Memory (stubs in inbox.md). */
+  reviewStubs?: number;
   onDismissChange: () => void;
   /** Injected for tests. */
   today?: string;
@@ -16,7 +18,7 @@ interface HomeProps {
 
 const STALE_DAYS = 30;
 
-export function Home({ data, loading, error, externalChange, changedPaths, onDismissChange, today, children }: HomeProps) {
+export function Home({ data, loading, error, externalChange, changedPaths, reviewStubs = 0, onDismissChange, today, children }: HomeProps) {
   const day = today ?? todayIso();
   const stats = useMemo(() => computeStats(data.entries, day, STALE_DAYS), [data.entries, day]);
   const changes = useMemo(() => recentChanges(data.files, 5), [data.files]);
@@ -31,6 +33,11 @@ export function Home({ data, loading, error, externalChange, changedPaths, onDis
 
   return (
     <div className="space-y-3 text-sm" data-testid="home">
+      {reviewStubs > 0 && (
+        <div role="alert" className="rounded-lg bg-amber-500/15 px-3 py-2 text-amber-200" data-testid="review-alert">
+          {reviewStubs} {reviewStubs === 1 ? "session" : "sessions"} changed servers without updating Ops Memory. See inbox.md.
+        </div>
+      )}
       {externalChange && (
         <div role="status" className="flex items-center justify-between rounded-lg bg-orange-500/15 px-3 py-2 text-orange-200">
           <span>

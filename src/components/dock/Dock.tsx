@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useDock } from "../../lib/dock/useDock";
 import { useOpsMemory } from "../../lib/ops/useOpsMemory";
+import { countReviewStubs } from "../../lib/opsMemory";
 import { QuickAdd } from "../add/QuickAdd";
 import { Browse } from "../browse/Browse";
 import { Chat } from "../chat/Chat";
@@ -16,6 +17,7 @@ export default function Dock() {
   const { expanded, tab } = state;
   const needsSetup = loaded && !config.setupComplete;
   const ops = useOpsMemory(loaded && config.setupComplete);
+  const reviewStubs = countReviewStubs(ops.files.find((f) => f.path === "inbox.md")?.content ?? "");
 
   // First run: open the dock straight into the setup wizard.
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function Dock() {
                   error={ops.error}
                   externalChange={ops.externalChange}
                   changedPaths={ops.changedPaths}
+                  reviewStubs={reviewStubs}
                   onDismissChange={ops.clearExternalChange}
                 >
                   {import.meta.env.DEV && (
@@ -73,7 +76,7 @@ export default function Dock() {
             </section>
           </>
         ) : (
-          <Pill onClick={() => send({ type: "expand" })} hasNewChange={ops.externalChange} />
+          <Pill onClick={() => send({ type: "expand" })} hasNewChange={ops.externalChange} needsReview={reviewStubs > 0} />
         )}
       </div>
     </div>

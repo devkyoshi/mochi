@@ -123,3 +123,37 @@ export const claudeDeleteKey = (): Promise<void> => invoke<void>("claude_delete_
 
 export const onClaudeStream = (requestId: string, callback: (e: StreamEvent) => void): Promise<() => void> =>
   listen<StreamEvent>(`claude://${requestId}`, (e) => callback(e.payload));
+
+/** Mirrors `InstallPlan` in src-tauri/src/install.rs (a dry run of the Claude Code integration). */
+export interface InstallPlan {
+  settingsPath: string;
+  claudeMdPath: string;
+  settingsBefore: string | null;
+  settingsAfter: string;
+  claudeMdBefore: string | null;
+  claudeMdAfter: string;
+  unchanged: boolean;
+}
+
+export interface IntegrationStatus {
+  ruleInstalled: boolean;
+  stopHook: boolean;
+  sessionEndHook: boolean;
+  settingsError: string | null;
+}
+
+export interface InstallResult {
+  backups: string[];
+  status: IntegrationStatus;
+}
+
+/** Dry run only: nothing is written. `opsPath` overrides the saved folder (used by the setup wizard). */
+export const integrationPreview = (uninstall: boolean, opsPath?: string): Promise<InstallPlan> =>
+  invoke<InstallPlan>("integration_preview", { uninstall, opsPathOverride: opsPath ?? null });
+
+export const integrationInstall = (opsPath?: string): Promise<InstallResult> =>
+  invoke<InstallResult>("integration_install", { opsPathOverride: opsPath ?? null });
+
+export const integrationUninstall = (): Promise<InstallResult> => invoke<InstallResult>("integration_uninstall");
+
+export const integrationStatus = (): Promise<IntegrationStatus> => invoke<IntegrationStatus>("integration_status");

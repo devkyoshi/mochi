@@ -1,5 +1,6 @@
 import type { AppConfig } from "../../lib/api";
 import { ClaudeConnect } from "../chat/ClaudeConnect";
+import { GlobalRuleSetup } from "../integration/GlobalRuleSetup";
 
 interface SettingsPanelProps {
   config: AppConfig;
@@ -37,6 +38,12 @@ export function SettingsPanel({ config, error, onChange }: SettingsPanelProps) {
         </summary>
         <div className="mt-2">
           <ClaudeConnect connected={config.claudeProvider} onConnected={(claudeProvider) => onChange({ claudeProvider })} />
+        </div>
+      </details>
+      <details className="rounded-lg bg-white/5 p-2">
+        <summary className="cursor-pointer text-neutral-300">Claude Code integration (global rule and hooks)</summary>
+        <div className="mt-2">
+          <GlobalRuleSetup opsPath={config.opsMemoryPath} />
         </div>
       </details>
       <p className="truncate text-neutral-400">Ops Memory: {config.opsMemoryPath ?? "not set"}</p>

@@ -9,6 +9,7 @@ import {
   type WizardState,
 } from "../../lib/wizard/wizardState";
 import { ClaudeConnect } from "../chat/ClaudeConnect";
+import { GlobalRuleSetup } from "../integration/GlobalRuleSetup";
 import { Mascot, type MascotState } from "../mascot";
 
 interface WizardProps {
@@ -146,9 +147,10 @@ export function Wizard({ onFinish }: WizardProps) {
             <>
               <h2 className="text-base font-semibold text-white">Keep notes up to date automatically</h2>
               <p>
-                A global Claude Code rule and hooks will keep these notes current from any project. Coming soon;
-                nothing is installed or changed on your machine.
+                An optional global rule and two hooks make Claude Code update these notes after server work in any
+                project. You review every change first; you can skip this and do it later in Settings.
               </p>
+              <GlobalRuleSetup opsPath={state.createdPath} />
             </>
           )}
 

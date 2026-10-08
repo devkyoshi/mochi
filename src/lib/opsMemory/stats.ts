@@ -75,3 +75,8 @@ export function todayIso(now = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
+
+/** Review stubs left in inbox.md by the Claude Code hook (sessions that changed servers without updating Ops Memory). */
+export function countReviewStubs(inbox: string): number {
+  return inbox.split(/\r?\n/).filter((l) => l.includes("(by: mochi-hook)")).length;
+}
