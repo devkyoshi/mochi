@@ -1,3 +1,5 @@
+mod scanner;
+
 /// Returns the application version (placeholder command used to verify the IPC bridge).
 #[tauri::command]
 fn app_version() -> String {
@@ -8,7 +10,7 @@ fn app_version() -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![app_version])
+        .invoke_handler(tauri::generate_handler![app_version, scanner::scan_secrets])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

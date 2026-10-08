@@ -6,7 +6,7 @@ Plan: [PLAN.md](PLAN.md). Update this file at the end of every stage. Find a sta
 |---|---|---|---|
 | 0 | Scaffold & project brief | Done | 2026-10-08 |
 | 1 | Ops Memory schema & templates | Done | 2026-10-08 |
-| 2 | Secret scanner | Not started | |
+| 2 | Secret scanner | Done | 2026-10-08 |
 | 3 | Window shell (dock) | Not started | |
 | 4 | Mascot | Not started | |
 | 5 | Setup wizard | Not started | |
@@ -22,3 +22,4 @@ Plan: [PLAN.md](PLAN.md). Update this file at the end of every stage. Find a sta
 - 2026-10-08 — Reviewed the proposal; wrote PLAN.md, README, DECISION.md, MEMORY.md, PROGRESS.md. No code yet.
 - 2026-10-08 — Stage 0: Tauri v2 + React + TS + Tailwind v4 scaffold, vitest + eslint, CLAUDE.md; tests/lint/typecheck green; app window launches.
 - 2026-10-08 — Stage 1: schema doc, templates, lossless frontmatter parser/editor, entry validation, INDEX generator; 56 new vitest tests (57 total).
+- 2026-10-08 — Stage 2: Rust secret scanner (`scan_secrets` command) + TS wrapper; 23 cargo tests incl. false-positive cases (UUID, git SHA, versions, paths); 3 new vitest tests.
