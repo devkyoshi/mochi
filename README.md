@@ -67,4 +67,4 @@ Details for each stage: [docs/PLAN.md](docs/PLAN.md).
 
 ## Getting started
 
-`npm install`, then `npm run tauri dev` (needs Rust, Node 22+, git). Build an installer with `npm run tauri build` (see docs/release.md). Tests: `npm test` and `cd src-tauri && cargo test`. Stage plan: [docs/PLAN.md](docs/PLAN.md).
+**`make dev`** runs the app (needs Rust, Node 22+, git, and `make`; the first run compiles for a few minutes). Look at the top-center of your screen for the small pill; click it or press Ctrl+Shift+Space. `make stop` stops the app and any leftover dev server; `make help` lists everything. Without make: `npm install`, then `npm run tauri dev`. Build an installer with `npm run tauri build` (see docs/release.md). Tests: `npm test` and `cd src-tauri && cargo test`. Stage plan: [docs/PLAN.md](docs/PLAN.md).
