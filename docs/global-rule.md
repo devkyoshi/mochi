@@ -35,3 +35,9 @@ Stop input includes `stop_hook_active`; blocking = JSON `decision: block` on std
 - The transcript can lag behind the conversation, so the Stop hook may occasionally miss the very latest tool call (it then allows).
 - The hook helper ships with the app as a Tauri sidecar (`bundle.externalBin`, built by `npm run prepare:hook`) and sits next to the app executable; the installer copies it to `<app config dir>/hooks/`. `tauri dev` builds it automatically. See `docs/release.md`.
 - Not verified live: a real Claude Code session running the installed hooks (needs a manual run; tests cover the binary as a child process with real JSON on stdin).
+
+## Stage 13 additions
+
+- The rule now also asks Claude to keep **Storage**, **Live site** (`vm`, `domain`, `live_url`, `live`) and **Dev Logins** (table, Password cell always `keychain`) current, and to tell the user to set new passwords in Mochi.
+- Layer 3: the **`/mochi-sync`** slash command (`~/.claude/commands/mochi-sync.md`, template `templates/mochi-sync-command.md`). Run it inside a project to have Claude inspect the repo and refresh that project's and VM's records. It is installed, updated and removed together with the rule; the file carries a `MOCHI:COMMAND` marker, and a user's own `mochi-sync.md` without the marker is never overwritten or deleted.
+- Mochi compares the installed rule block and command with the current templates and shows "out of date" in Settings so users can preview and apply the update (backups as before).

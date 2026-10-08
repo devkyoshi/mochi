@@ -201,11 +201,11 @@ describe("TabBar keyboard navigation", () => {
     const onSelect = vi.fn();
     const { rerender } = render(<TabBar tab="home" sound onSelect={onSelect} onToggleSound={() => undefined} />);
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1", "-1"]);
+    expect(tabs.map((t) => t.getAttribute("tabindex"))).toEqual(["0", "-1", "-1", "-1", "-1", "-1", "-1", "-1"]);
 
     tabs[0].focus();
     fireEvent.keyDown(tabs[0], { key: "ArrowRight" });
-    expect(onSelect).toHaveBeenCalledWith("browse");
+    expect(onSelect).toHaveBeenCalledWith("projects");
     await waitFor(() => expect(document.activeElement).toBe(tabs[1]));
 
     fireEvent.keyDown(tabs[0], { key: "ArrowLeft" });
@@ -214,6 +214,6 @@ describe("TabBar keyboard navigation", () => {
     expect(onSelect).toHaveBeenLastCalledWith("settings");
 
     rerender(<TabBar tab="chat" sound onSelect={onSelect} onToggleSound={() => undefined} />);
-    expect(screen.getAllByRole("tab").map((t) => t.getAttribute("tabindex"))).toEqual(["-1", "-1", "0", "-1", "-1"]);
+    expect(screen.getAllByRole("tab").map((t) => t.getAttribute("tabindex"))).toEqual(["-1", "-1", "-1", "-1", "-1", "0", "-1", "-1"]);
   });
 });

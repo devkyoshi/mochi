@@ -46,6 +46,25 @@ export const SoundOffIcon = () => (
     <path d="M17 9l5 6M22 9l-5 6" />
   </svg>
 );
+export const ProjectsIcon = () => (
+  <svg {...base}>
+    <path d="M12 3l9 5-9 5-9-5 9-5z" />
+    <path d="M3 13l9 5 9-5" />
+  </svg>
+);
+export const ServerIcon = () => (
+  <svg {...base}>
+    <rect x="3" y="4" width="18" height="7" rx="2" />
+    <rect x="3" y="13" width="18" height="7" rx="2" />
+    <path d="M7 7.5h.01M7 16.5h.01" />
+  </svg>
+);
+export const InboxIcon = () => (
+  <svg {...base}>
+    <path d="M3 13l3-8h12l3 8" />
+    <path d="M3 13v6h18v-6h-5l-1 3H9l-1-3H3z" />
+  </svg>
+);
 export const BrowseIcon = () => (
   <svg {...base}>
     <path d="M4 4h12l4 4v12H4z" />

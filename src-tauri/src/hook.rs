@@ -252,7 +252,7 @@ impl Outcome {
 
 pub fn block_reason(keywords: &[String], ops_root: &str) -> String {
     format!(
-        "Infrastructure work was detected in this task ({}), but Ops Memory was not updated. Before finishing, follow the Ops Memory rule: update the matching file in vms/ and projects/ at {}, add a dated line to changelog/YYYY-MM.md, bump last_updated, never write secret values, or append to inbox.md if unsure which VM or project applies.",
+        "Infrastructure work was detected in this task ({}), but Ops Memory was not updated. Before finishing, follow the Ops Memory rule: update the matching file in vms/ and projects/ at {}, add a dated line to changelog/YYYY-MM.md, bump last_updated, never write secret values, or append to inbox.md if unsure which VM or project applies. (The /mochi-sync command refreshes a project's records in one go.)",
         keywords.join(", "),
         ops_root.replace('\\', "/")
     )

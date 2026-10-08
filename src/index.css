@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+html {
+  color-scheme: dark; /* native controls (number, password, ...) render dark */
+}
 html,
 body,
 #root {
@@ -32,6 +35,30 @@ body,
   .dock {
     transition: none;
   }
+}
+
+/* Thin, rounded scrollbars that match the dark dock. WebView2/WebKit only: the standard
+   scrollbar-width/color properties would disable these pseudo-element rules in Chromium 121+. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.2);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.4);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-button {
+  display: none;
 }
 
 /* Visible keyboard focus everywhere. */

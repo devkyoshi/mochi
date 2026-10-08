@@ -1,4 +1,4 @@
-export type TabId = "home" | "browse" | "chat" | "add" | "settings";
+export type TabId = "home" | "projects" | "vms" | "browse" | "inbox" | "chat" | "add" | "settings";
 
 export interface DockState {
   expanded: boolean;

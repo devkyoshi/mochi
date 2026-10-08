@@ -8,6 +8,7 @@ mod integration;
 mod ops;
 mod opsfs;
 mod scanner;
+mod secrets;
 mod store;
 mod tray;
 
@@ -78,6 +79,10 @@ pub fn run() {
             claude::claude_test,
             claude::claude_save_key,
             claude::claude_has_key,
+            secrets::secret_set,
+            secrets::secret_has,
+            secrets::secret_get,
+            secrets::secret_delete,
             claude::claude_delete_key,
             integration::integration_preview,
             integration::integration_install,

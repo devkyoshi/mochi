@@ -13,12 +13,13 @@ interface HomeProps {
   /** Days without an update before a VM/project counts as stale. */
   staleDays?: number;
   onDismissChange: () => void;
+  onOpenInbox?: () => void;
   /** Injected for tests. */
   today?: string;
   children?: React.ReactNode;
 }
 
-export function Home({ data, loading, error, externalChange, changedPaths, reviewStubs = 0, staleDays = 30, onDismissChange, today, children }: HomeProps) {
+export function Home({ data, loading, error, externalChange, changedPaths, reviewStubs = 0, staleDays = 30, onDismissChange, onOpenInbox, today, children }: HomeProps) {
   const day = today ?? todayIso();
   const stats = useMemo(() => computeStats(data.entries, day, staleDays), [data.entries, day, staleDays]);
   const changes = useMemo(() => recentChanges(data.files, 5), [data.files]);
@@ -35,7 +36,14 @@ export function Home({ data, loading, error, externalChange, changedPaths, revie
     <div className="space-y-3 text-sm" data-testid="home">
       {reviewStubs > 0 && (
         <div role="alert" className="rounded-lg bg-amber-500/15 px-3 py-2 text-amber-200" data-testid="review-alert">
-          {reviewStubs} {reviewStubs === 1 ? "session" : "sessions"} changed servers without updating Ops Memory. See inbox.md.
+          {reviewStubs} {reviewStubs === 1 ? "session" : "sessions"} changed servers without updating Ops Memory.{" "}
+          {onOpenInbox ? (
+            <button type="button" onClick={onOpenInbox} className="underline focus-visible:outline-2 focus-visible:outline-sky-400">
+              Open inbox
+            </button>
+          ) : (
+            "See inbox.md."
+          )}
         </div>
       )}
       {externalChange && (

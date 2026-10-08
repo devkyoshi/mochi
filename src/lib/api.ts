@@ -128,6 +128,13 @@ export const claudeSaveKey = (key: string): Promise<void> => invoke<void>("claud
 export const claudeHasKey = (): Promise<boolean> => invoke<boolean>("claude_has_key");
 export const claudeDeleteKey = (): Promise<void> => invoke<void>("claude_delete_key");
 
+/** Dev-login passwords live in the OS keychain under `devlogin:<name>:<username>`; markdown never holds them. */
+export const secretSet = (account: string, value: string): Promise<void> => invoke<void>("secret_set", { account, value });
+export const secretHas = (account: string): Promise<boolean> => invoke<boolean>("secret_has", { account });
+/** Only called from an explicit Copy/Reveal click. */
+export const secretGet = (account: string): Promise<string> => invoke<string>("secret_get", { account });
+export const secretDelete = (account: string): Promise<void> => invoke<void>("secret_delete", { account });
+
 export const onClaudeStream = (requestId: string, callback: (e: StreamEvent) => void): Promise<() => void> =>
   listen<StreamEvent>(`claude://${requestId}`, (e) => callback(e.payload));
 
@@ -139,6 +146,10 @@ export interface InstallPlan {
   settingsAfter: string;
   claudeMdBefore: string | null;
   claudeMdAfter: string;
+  commandPath?: string;
+  commandBefore?: string | null;
+  /** `null` = the command file is removed. */
+  commandAfter?: string | null;
   unchanged: boolean;
 }
 
@@ -146,6 +157,10 @@ export interface IntegrationStatus {
   ruleInstalled: boolean;
   stopHook: boolean;
   sessionEndHook: boolean;
+  /** The `/mochi-sync` slash command is installed. */
+  commandInstalled?: boolean;
+  /** Installed rule or command differs from this version of Mochi (run update). */
+  outdated?: boolean;
   settingsError: string | null;
 }
 

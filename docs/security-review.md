@@ -44,3 +44,9 @@ The release binary was started with WebView2 remote debugging and inspected over
 - macOS transparency needs the private API (no Mac App Store distribution).
 - WebView2 remote debugging is only enabled by an environment variable; anyone who can set the user's environment already has local code execution.
 - Installers are unsigned until signing certificates are configured (see `docs/release.md`); unsigned installers trigger OS warnings.
+
+## Stage 13: dev-login passwords in the keychain
+
+- New commands `secret_set/has/get/delete` (`src-tauri/src/secrets.rs`). Accounts must match `devlogin:<name>:<username>`; the Anthropic API key account cannot be reached through them (tested), so `secret_get` returns a secret to the UI only for dev logins.
+- `secret_get` is called only from an explicit Copy or Reveal click; a revealed password is hidden again after 10 s. Passwords are never written to markdown, commit messages, changelog lines or logs; the Add flow writes files first and the keychain second, and the markdown only ever says `keychain`.
+- CSP, capabilities and the fs/shell/http denials are unchanged. A compromised webview could read dev-login passwords through `secret_get` (same trust level as the rest of the UI); accepted because these are development logins and the commands are namespace-limited.

@@ -191,3 +191,22 @@ describe("Browse", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Nothing to undo.");
   });
 });
+
+describe("Browse structured view", () => {
+  const vm = {
+    path: "vms/click-print-vm.md",
+    content: "---\nlast_updated: 2026-10-08\nupdated_by: claude-code\n---\n# click-print-vm\n\nGCP `asia-south1-a`, IP 34.93.253.120.\n\n## Deployed\n- web on :80\n",
+  };
+
+  it("shows a vm as cards, with the raw markdown behind a toggle", () => {
+    const data = buildOpsData([vm]);
+    render(<Browse data={data} runSearch={() => []} reload={async () => undefined} />);
+    fireEvent.click(screen.getByRole("button", { name: /click-print-vm\.md/ }));
+    expect(screen.getByTestId("record")).toBeInTheDocument();
+    expect(screen.getByText("34.93.253.120")).toBeInTheDocument();
+    expect(screen.getByText("Updated 2026-10-08 · claude-code")).toBeInTheDocument();
+    expect(screen.queryByText(/^## Deployed/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Raw" }));
+    expect(screen.queryByTestId("record")).not.toBeInTheDocument();
+  });
+});

@@ -56,7 +56,7 @@ describe("Dock", () => {
     render(<Dock />);
     fireEvent.click(screen.getByRole("button", { name: "Open Mochi" }));
     expect(dock()).toHaveAttribute("data-expanded", "true");
-    expect(screen.getAllByRole("tab").length).toBe(5);
+    expect(screen.getAllByRole("tab").length).toBe(8);
     await waitFor(() => expect(api.setDockState).toHaveBeenCalledWith(true, false));
   });
 

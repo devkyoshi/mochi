@@ -5,7 +5,7 @@ Window: frameless, transparent, always-on-top, skip-taskbar, hidden until placed
 Verified on Windows 11 (launch, window creation, hotkey registration without error). macOS and Linux are untested.
 
 ## Behaviour
-- Collapsed pill 132x48, expanded 720x420 (logical px; raised from the proposal's 240 so Browse is usable). The OS window is resized by Rust (`set_dock_state`); the CSS animates inside it. Collapse waits 200 ms so the animation finishes before the window shrinks.
+- Collapsed pill 132x48, expanded 900x640 (logical px; raised from the proposal's 240 so Browse is usable). The OS window is resized by Rust (`set_dock_state`); the CSS animates inside it. Collapse waits 200 ms so the animation finishes before the window shrinks.
 - Default hotkey `CommandOrControl+Shift+Space`; changing it re-registers, and a failed change restores the old one.
 - Auto-collapse listens to the window focus-lost event.
 

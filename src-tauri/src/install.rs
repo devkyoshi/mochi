@@ -9,6 +9,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub const RULE_TEMPLATE: &str = include_str!("../../templates/global-rule.md");
+/// The `/mochi-sync` slash command, installed to `<claude dir>/commands/mochi-sync.md`.
+pub const COMMAND_TEMPLATE: &str = include_str!("../../templates/mochi-sync-command.md");
+const COMMAND_MARK: &str = "<!-- MOCHI:COMMAND";
+const COMMAND_FILE: &str = "commands/mochi-sync.md";
 const BEGIN_PREFIX: &str = "<!-- MOCHI:BEGIN";
 const END_MARK: &str = "<!-- MOCHI:END -->";
 /// Substring that identifies Mochi's hook commands in settings.json.
@@ -21,6 +25,15 @@ const HOOK_TIMEOUT_SECS: u64 = 10;
 /// The managed block with the real Ops Memory path substituted.
 pub fn render_rule(ops_path: &str) -> String {
     RULE_TEMPLATE.replace("<OPS_MEMORY_PATH>", &ops_path.replace('\\', "/"))
+}
+
+/// The slash command file with the real Ops Memory path substituted.
+pub fn render_command(ops_path: &str) -> String {
+    COMMAND_TEMPLATE.replace("<OPS_MEMORY_PATH>", &ops_path.replace('\\', "/"))
+}
+
+fn is_our_command(text: &str) -> bool {
+    text.contains(COMMAND_MARK)
 }
 
 fn eol_of(text: &str) -> &'static str {
@@ -170,6 +183,10 @@ pub struct InstallPlan {
     pub settings_after: String,
     pub claude_md_before: Option<String>,
     pub claude_md_after: String,
+    pub command_path: String,
+    pub command_before: Option<String>,
+    /// New contents of the slash command file; `None` means the file should not exist afterwards.
+    pub command_after: Option<String>,
     /// True when applying would change nothing.
     pub unchanged: bool,
 }
@@ -191,7 +208,15 @@ fn parse_settings(text: Option<&str>) -> Result<Value, String> {
     }
 }
 
-fn build_plan(claude_dir: &Path, settings: Value, settings_before: Option<String>, md_after: String, md_before: Option<String>) -> InstallPlan {
+fn build_plan(
+    claude_dir: &Path,
+    settings: Value,
+    settings_before: Option<String>,
+    md_after: String,
+    md_before: Option<String>,
+    command_before: Option<String>,
+    command_after: Option<String>,
+) -> InstallPlan {
     let settings_after = to_pretty(&settings, settings_before.as_deref());
     // Treat "file missing" and "empty result" alike so uninstall of nothing is a no-op.
     let settings_same = match &settings_before {
@@ -202,6 +227,7 @@ fn build_plan(claude_dir: &Path, settings: Value, settings_before: Option<String
         Some(b) => *b == md_after,
         None => md_after.is_empty(),
     };
+    let command_same = command_before == command_after;
     InstallPlan {
         settings_path: claude_dir.join("settings.json").to_string_lossy().into_owned(),
         claude_md_path: claude_dir.join("CLAUDE.md").to_string_lossy().into_owned(),
@@ -209,7 +235,10 @@ fn build_plan(claude_dir: &Path, settings: Value, settings_before: Option<String
         settings_after,
         claude_md_before: md_before,
         claude_md_after: md_after,
-        unchanged: settings_same && md_same,
+        command_path: claude_dir.join(COMMAND_FILE).to_string_lossy().into_owned(),
+        command_before,
+        command_after,
+        unchanged: settings_same && md_same && command_same,
     }
 }
 
@@ -225,7 +254,11 @@ pub fn plan_install(claude_dir: &Path, ops_path: &str, hook_exe: &Path) -> Resul
     let mut settings = parse_settings(settings_before.as_deref())?;
     merge_hooks(&mut settings, hook_exe)?;
     let md_after = upsert_block(md_before.as_deref().unwrap_or(""), &render_rule(ops_path));
-    Ok(build_plan(claude_dir, settings, settings_before, md_after, md_before))
+    let command_before = read_opt(&claude_dir.join(COMMAND_FILE))?;
+    if command_before.as_deref().is_some_and(|c| !is_our_command(c)) {
+        return Err("A different /mochi-sync command already exists in ~/.claude/commands. Rename or remove it first; Mochi did not change anything.".into());
+    }
+    Ok(build_plan(claude_dir, settings, settings_before, md_after, md_before, command_before, Some(render_command(ops_path))))
 }
 
 /// Dry run: compute both files with Mochi's entries removed.
@@ -235,7 +268,13 @@ pub fn plan_uninstall(claude_dir: &Path) -> Result<InstallPlan, String> {
     let mut settings = parse_settings(settings_before.as_deref())?;
     remove_hooks(&mut settings);
     let md_after = remove_block(md_before.as_deref().unwrap_or(""));
-    Ok(build_plan(claude_dir, settings, settings_before, md_after, md_before))
+    // Only a command that carries our marker is ours to remove.
+    let command_before = read_opt(&claude_dir.join(COMMAND_FILE))?;
+    let command_after = match &command_before {
+        Some(c) if !is_our_command(c) => command_before.clone(),
+        _ => None,
+    };
+    Ok(build_plan(claude_dir, settings, settings_before, md_after, md_before, command_before, command_after))
 }
 
 fn write_atomic(path: &Path, contents: &str) -> Result<(), String> {
@@ -253,9 +292,10 @@ pub fn apply(plan: &InstallPlan, stamp: &str) -> Result<Vec<String>, String> {
     if plan.unchanged {
         return Ok(vec![]);
     }
-    let files: [(&str, &Option<String>, &str); 2] = [
-        (&plan.settings_path, &plan.settings_before, &plan.settings_after),
-        (&plan.claude_md_path, &plan.claude_md_before, &plan.claude_md_after),
+    let files: [(&str, &Option<String>, Option<&str>); 3] = [
+        (&plan.settings_path, &plan.settings_before, Some(&plan.settings_after)),
+        (&plan.claude_md_path, &plan.claude_md_before, Some(&plan.claude_md_after)),
+        (&plan.command_path, &plan.command_before, plan.command_after.as_deref()),
     ];
     let mut backups = Vec::new();
     for (path, before, _) in &files {
@@ -267,11 +307,14 @@ pub fn apply(plan: &InstallPlan, stamp: &str) -> Result<Vec<String>, String> {
     }
     let mut written: Vec<usize> = Vec::new();
     for (i, (path, before, after)) in files.iter().enumerate() {
-        let unchanged = before.as_deref() == Some(*after);
-        if unchanged {
+        if before.as_deref() == *after {
             continue;
         }
-        if let Err(e) = write_atomic(Path::new(path), after) {
+        let result = match after {
+            Some(text) => write_atomic(Path::new(path), text),
+            None => fs::remove_file(path).map_err(|e| e.to_string()),
+        };
+        if let Err(e) = result {
             for &j in &written {
                 let (p, b, _) = &files[j];
                 match b {
@@ -296,6 +339,10 @@ pub struct IntegrationStatus {
     pub rule_installed: bool,
     pub stop_hook: bool,
     pub session_end_hook: bool,
+    /// The `/mochi-sync` slash command is installed.
+    pub command_installed: bool,
+    /// Something is installed but differs from what this version of Mochi would install (re-run install to update).
+    pub outdated: bool,
     /// Unparseable settings.json (nothing can be installed until fixed).
     pub settings_error: Option<String>,
 }
@@ -308,16 +355,37 @@ fn event_has_ours(settings: &Value, event: &str) -> bool {
     })
 }
 
-pub fn status(claude_dir: &Path) -> IntegrationStatus {
+fn normalized(text: &str) -> String {
+    text.replace("
+
+", "
+").trim().to_string()
+}
+
+/// `ops_path` is the saved Ops Memory path; without it "outdated" cannot be judged and is reported false.
+pub fn status(claude_dir: &Path, ops_path: Option<&str>) -> IntegrationStatus {
     let md = read_opt(&claude_dir.join("CLAUDE.md")).ok().flatten().unwrap_or_default();
+    let command = read_opt(&claude_dir.join(COMMAND_FILE)).ok().flatten();
     let (settings, err) = match read_opt(&claude_dir.join("settings.json")).and_then(|t| parse_settings(t.as_deref())) {
         Ok(v) => (v, None),
         Err(e) => (json!({}), Some(e)),
     };
+    let rule_installed = has_block(&md);
+    let command_installed = command.as_deref().is_some_and(is_our_command);
+    let outdated = match ops_path {
+        Some(ops) if rule_installed || command_installed => {
+            let rule_stale = block_range(&md).is_some_and(|(s, e)| normalized(&md[s..e]) != normalized(&render_rule(ops)));
+            let command_stale = command_installed && command.as_deref().is_some_and(|c| normalized(c) != normalized(&render_command(ops)));
+            rule_stale || command_stale || (rule_installed && !command_installed)
+        }
+        _ => false,
+    };
     IntegrationStatus {
-        rule_installed: has_block(&md),
+        rule_installed,
         stop_hook: event_has_ours(&settings, "Stop"),
         session_end_hook: event_has_ours(&settings, "SessionEnd"),
+        command_installed,
+        outdated,
         settings_error: err,
     }
 }
@@ -533,14 +601,14 @@ mod tests {
         assert_eq!(fs::read_to_string(dir.path().join("settings.json.mochi-backup-t1")).unwrap(), SETTINGS);
         assert_eq!(fs::read_to_string(dir.path().join("CLAUDE.md.mochi-backup-t1")).unwrap(), "# mine\n");
 
-        let st = status(dir.path());
+        let st = status(dir.path(), None);
         assert!(st.rule_installed && st.stop_hook && st.session_end_hook && st.settings_error.is_none());
         assert!(fs::read_to_string(dir.path().join("settings.json")).unwrap().contains("echo mine"));
 
         apply(&plan_uninstall(dir.path()).unwrap(), "t2").unwrap();
         assert_eq!(fs::read_to_string(dir.path().join("settings.json")).unwrap(), SETTINGS);
         assert_eq!(fs::read_to_string(dir.path().join("CLAUDE.md")).unwrap(), "# mine\n");
-        let st = status(dir.path());
+        let st = status(dir.path(), None);
         assert!(!st.rule_installed && !st.stop_hook && !st.session_end_hook);
     }
 
@@ -550,7 +618,7 @@ mod tests {
         let nested = dir.path().join("fresh").join(".claude");
         apply(&plan_install(&nested, "/ops", &exe()).unwrap(), "t").unwrap();
         assert!(nested.join("settings.json").exists() && nested.join("CLAUDE.md").exists());
-        assert!(status(&nested).stop_hook);
+        assert!(status(&nested, None).stop_hook);
         // nothing existed, so nothing was backed up
         assert!(fs::read_dir(&nested).unwrap().all(|e| !e.unwrap().file_name().to_string_lossy().contains("backup")));
         apply(&plan_uninstall(&nested).unwrap(), "t2").unwrap();
@@ -568,7 +636,7 @@ mod tests {
         assert!(plan_uninstall(dir.path()).is_err());
         assert_eq!(fs::read_to_string(dir.path().join("settings.json")).unwrap(), "{ not json");
         assert_eq!(fs::read_to_string(dir.path().join("CLAUDE.md")).unwrap(), "# mine\n");
-        assert!(status(dir.path()).settings_error.is_some());
+        assert!(status(dir.path(), None).settings_error.is_some());
     }
 
     #[test]
@@ -622,5 +690,77 @@ mod tests {
         fs::create_dir(dir.path().join("CLAUDE.md")).unwrap();
         assert!(apply(&plan, "t").is_err());
         assert_eq!(fs::read_to_string(dir.path().join("settings.json")).unwrap(), SETTINGS);
+    }
+
+    // ---- /mochi-sync slash command
+
+    #[test]
+    fn rendered_command_has_frontmatter_first_the_marker_and_the_real_path() {
+        let c = render_command(r"D:\notes\ops");
+        assert!(c.starts_with("---
+"), "frontmatter must come first so Claude Code reads the description");
+        assert!(c.contains(COMMAND_MARK) && c.contains("D:/notes/ops") && !c.contains("<OPS_MEMORY_PATH>"));
+        for needle in ["Dev Logins", "Storage", "keychain", "inbox.md", "NEVER write secret values"] {
+            assert!(c.contains(needle), "{needle}");
+        }
+    }
+
+    #[test]
+    fn the_rule_documents_storage_live_site_dev_logins_and_the_command() {
+        let r = render_rule("/ops");
+        for needle in ["## Storage", "live_url", "## Dev Logins", "keychain", "/mochi-sync", "Add → Dev login"] {
+            assert!(r.contains(needle), "{needle}");
+        }
+    }
+
+    #[test]
+    fn install_writes_the_command_and_uninstall_removes_only_ours() {
+        let dir = claude_dir();
+        apply(&plan_install(dir.path(), "/ops", &exe()).unwrap(), "t1").unwrap();
+        let path = dir.path().join("commands").join("mochi-sync.md");
+        assert!(path.exists() && status(dir.path(), Some("/ops")).command_installed);
+        apply(&plan_uninstall(dir.path()).unwrap(), "t2").unwrap();
+        assert!(!path.exists());
+        assert!(!status(dir.path(), None).command_installed);
+    }
+
+    #[test]
+    fn a_users_own_mochi_sync_command_is_never_overwritten_or_removed() {
+        let dir = claude_dir();
+        let path = dir.path().join("commands").join("mochi-sync.md");
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, "my own command
+").unwrap();
+        assert!(plan_install(dir.path(), "/ops", &exe()).unwrap_err().contains("different /mochi-sync"));
+        let plan = plan_uninstall(dir.path()).unwrap();
+        apply(&plan, "t").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "my own command
+");
+    }
+
+    #[test]
+    fn existing_command_is_backed_up_before_an_update() {
+        let dir = claude_dir();
+        apply(&plan_install(dir.path(), "/old", &exe()).unwrap(), "t1").unwrap();
+        let backups = apply(&plan_install(dir.path(), "/new", &exe()).unwrap(), "t2").unwrap();
+        assert!(backups.iter().any(|b| b.contains("mochi-sync.md.mochi-backup-t2")));
+        assert!(fs::read_to_string(dir.path().join("commands").join("mochi-sync.md")).unwrap().contains("/new"));
+    }
+
+    #[test]
+    fn status_reports_outdated_installs() {
+        let dir = claude_dir();
+        assert!(!status(dir.path(), Some("/ops")).outdated, "nothing installed is not outdated");
+        // Old install: rule block from an earlier version and no command.
+        fs::write(dir.path().join("CLAUDE.md"), "<!-- MOCHI:BEGIN old -->
+old rules
+<!-- MOCHI:END -->
+").unwrap();
+        let st = status(dir.path(), Some("/ops"));
+        assert!(st.rule_installed && !st.command_installed && st.outdated);
+        apply(&plan_install(dir.path(), "/ops", &exe()).unwrap(), "t").unwrap();
+        assert!(!status(dir.path(), Some("/ops")).outdated);
+        assert!(status(dir.path(), Some("/elsewhere")).outdated, "path changed");
+        assert!(!status(dir.path(), None).outdated, "unknown path cannot be judged");
     }
 }

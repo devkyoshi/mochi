@@ -6,3 +6,6 @@ export * from "./stats";
 export * from "./search";
 export * from "./lineDiff";
 export * from "./quickAdd";
+export * from "./records";
+export * from "./directory";
+export * from "./logins";

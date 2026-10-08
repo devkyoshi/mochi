@@ -109,15 +109,21 @@ export function GlobalRuleSetup({ opsPath, onInstalledChange }: GlobalRuleSetupP
       {status && (
         <p className="text-neutral-400" data-testid="integration-status">
           {installed
-            ? `Installed: rule ${status.ruleInstalled ? "yes" : "no"}, Stop hook ${status.stopHook ? "yes" : "no"}, SessionEnd hook ${status.sessionEndHook ? "yes" : "no"}`
+            ? `Installed: rule ${status.ruleInstalled ? "yes" : "no"}, Stop hook ${status.stopHook ? "yes" : "no"}, SessionEnd hook ${status.sessionEndHook ? "yes" : "no"}, /mochi-sync ${status.commandInstalled ? "yes" : "no"}`
             : "Not installed. Nothing on your machine has been changed."}
+        </p>
+      )}
+
+      {status?.outdated && !plan && (
+        <p role="status" className="rounded-lg bg-amber-500/15 px-3 py-2 text-amber-200" data-testid="rule-outdated">
+          The Claude rule or the /mochi-sync command is out of date. Preview the update to bring it in line with this version of Mochi.
         </p>
       )}
 
       {!plan && (
         <div className="flex flex-wrap gap-2">
           <button type="button" className={`${btn} bg-white/10 text-white hover:bg-white/20`} onClick={() => void preview("install")}>
-            {installed ? "Preview update" : "Preview changes"}
+            {installed ? (status?.outdated ? "Preview update (available)" : "Preview update") : "Preview changes"}
           </button>
           {installed && (
             <button type="button" className={`${btn} bg-white/10 text-white hover:bg-white/20`} onClick={() => void preview("uninstall")}>
@@ -135,6 +141,9 @@ export function GlobalRuleSetup({ opsPath, onInstalledChange }: GlobalRuleSetupP
             <>
               <DiffBox title="~/.claude/CLAUDE.md" before={plan.claudeMdBefore} after={plan.claudeMdAfter} />
               <DiffBox title="~/.claude/settings.json" before={plan.settingsBefore} after={plan.settingsAfter} />
+              {plan.commandPath && (
+                <DiffBox title="~/.claude/commands/mochi-sync.md" before={plan.commandBefore ?? null} after={plan.commandAfter ?? ""} />
+              )}
               <p className="text-xs text-neutral-500">Your existing files are backed up first. Other settings and hooks are not touched.</p>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="accent-sky-400" />

@@ -45,6 +45,11 @@ fn ops_path(state: &State<AppState>, explicit: Option<String>) -> Result<String,
     Ok(path)
 }
 
+/// The saved Ops Memory path, if any (used to judge whether the installed rule is out of date).
+fn saved_ops(state: &State<AppState>) -> Option<String> {
+    state.config.lock().ok().and_then(|c| c.ops_memory_path.clone())
+}
+
 /// A real executable is far larger than the placeholder `build.rs` creates for fresh checkouts.
 const MIN_BINARY_BYTES: u64 = 10_000;
 
@@ -109,7 +114,7 @@ pub fn integration_install(
 
     let plan = install::plan_install(&dir, &ops, &target)?;
     let backups = install::apply(&plan, &stamp())?;
-    Ok(InstallResult { backups, status: install::status(&dir) })
+    Ok(InstallResult { backups, status: install::status(&dir, Some(ops.as_str())) })
 }
 
 /// Remove Mochi's block and hook entries (backing the files up first) and delete the hook helper.
@@ -119,12 +124,12 @@ pub fn integration_uninstall(app: AppHandle, state: State<AppState>) -> Result<I
     let plan = install::plan_uninstall(&dir)?;
     let backups = install::apply(&plan, &stamp())?;
     let _ = fs::remove_file(installed_hook_path(&state));
-    Ok(InstallResult { backups, status: install::status(&dir) })
+    Ok(InstallResult { backups, status: install::status(&dir, saved_ops(&state).as_deref()) })
 }
 
 #[tauri::command]
-pub fn integration_status(app: AppHandle) -> Result<IntegrationStatus, String> {
-    Ok(install::status(&claude_dir(&app)?))
+pub fn integration_status(app: AppHandle, state: State<AppState>) -> Result<IntegrationStatus, String> {
+    Ok(install::status(&claude_dir(&app)?, saved_ops(&state).as_deref()))
 }
 
 #[cfg(test)]

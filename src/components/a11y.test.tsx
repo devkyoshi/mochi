@@ -66,7 +66,7 @@ describe("accessibility (axe, jsdom)", () => {
     expect(await violations()).toEqual([]);
   });
 
-  for (const tab of ["Home", "Browse", "Chat", "Quick add", "Settings"]) {
+  for (const tab of ["Home", "Projects", "VMs", "Browse", "Inbox", "Chat", "Quick add", "Settings"]) {
     it(`the ${tab} tab has no violations`, async () => {
       await open(tab);
       expect(await violations()).toEqual([]);

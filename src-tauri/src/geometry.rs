@@ -20,7 +20,7 @@ pub struct Rect {
 
 /// Logical (DPI-independent) dock sizes.
 pub const COLLAPSED_SIZE: (f64, f64) = (132.0, 48.0);
-pub const EXPANDED_SIZE: (f64, f64) = (720.0, 420.0);
+pub const EXPANDED_SIZE: (f64, f64) = (900.0, 640.0);
 
 /// Place a window of `logical` size at the top-center of `monitor`, `top_margin` logical px from the top.
 pub fn dock_rect(monitor: &MonitorInfo, logical: (f64, f64), top_margin: f64) -> Rect {

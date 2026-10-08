@@ -68,3 +68,11 @@ Files store **names and locations only** (e.g. "`DATABASE_URL` is set in `/etc/a
 - `readFrontmatter`: YAML 1.2 core parse; dates stay strings.
 - `validateFrontmatter` / `parseEntry`: schema checks (type, name, date, `deployed_on`).
 - `generateIndex(entries, generatedOn)`: deterministic INDEX.md (sorted, LF, pipes escaped, VM ↔ project cross-references).
+
+## Optional sections and fields (Stage 13)
+
+Everything below is optional and parsed leniently; unknown content is preserved.
+
+- Project frontmatter: `vm` (host VM name), `domain`, `live_url`, `live: true|false` (true = publicly reachable). VM frontmatter: `provider`, `zone`, `machine`, `os`, `ip` (they override what Mochi guesses from the intro text).
+- `## Storage`: one bullet per bucket, volume, disk or database, e.g. ``- GCS bucket `name` (asia-south1): purpose``. Names only, never keys.
+- `## Dev Logins`: a table `| Label | URL | Username | Role | Password | Notes |`. The Password cell is **only** the word `keychain` (a password is saved in the OS keychain) or `—`. The real password lives in Windows Credential Manager / macOS Keychain / Secret Service under service `mochi`, account `devlogin:<name>:<username>`, and is set from Add → Dev login.

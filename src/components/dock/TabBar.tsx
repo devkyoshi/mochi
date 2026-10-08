@@ -1,17 +1,22 @@
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import type { TabId } from "../../lib/dock/dockState";
-import { BrowseIcon, ChatIcon, GearIcon, HomeIcon, PlusIcon, SoundOffIcon, SoundOnIcon } from "./Icons";
+import { BrowseIcon, ChatIcon, GearIcon, HomeIcon, InboxIcon, PlusIcon, ProjectsIcon, ServerIcon, SoundOffIcon, SoundOnIcon } from "./Icons";
 
 interface TabBarProps {
   tab: TabId;
   sound: boolean;
+  /** Tabs with something waiting get a small dot. */
+  badges?: Partial<Record<TabId, number>>;
   onSelect: (tab: TabId) => void;
   onToggleSound: () => void;
 }
 
 const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
   { id: "home", label: "Home", icon: <HomeIcon /> },
+  { id: "projects", label: "Projects", icon: <ProjectsIcon /> },
+  { id: "vms", label: "VMs", icon: <ServerIcon /> },
   { id: "browse", label: "Browse", icon: <BrowseIcon /> },
+  { id: "inbox", label: "Inbox", icon: <InboxIcon /> },
   { id: "chat", label: "Chat", icon: <ChatIcon /> },
   { id: "add", label: "Quick add", icon: <PlusIcon /> },
   { id: "settings", label: "Settings", icon: <GearIcon /> },
@@ -34,11 +39,11 @@ export function nextTabIndex(current: number, key: string, count: number): numbe
 }
 
 const buttonClass = (active: boolean) =>
-  `flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+  `relative flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
     active ? "bg-white/15 text-white" : "text-neutral-400 hover:bg-white/10 hover:text-white"
   }`;
 
-export function TabBar({ tab, sound, onSelect, onToggleSound }: TabBarProps) {
+export function TabBar({ tab, sound, badges = {}, onSelect, onToggleSound }: TabBarProps) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function onKeyDown(e: KeyboardEvent, index: number) {
@@ -69,6 +74,9 @@ export function TabBar({ tab, sound, onSelect, onToggleSound }: TabBarProps) {
             onKeyDown={(e) => onKeyDown(e, i)}
           >
             {icon}
+            {badges[id] ? (
+              <span aria-hidden className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-amber-400" />
+            ) : null}
           </button>
         ))}
       </div>

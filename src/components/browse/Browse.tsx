@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import * as api from "../../lib/api";
 import type { OpsData } from "../../lib/ops/useOpsMemory";
-import type { SearchHit } from "../../lib/opsMemory";
+import { recordKind, type SearchHit } from "../../lib/opsMemory";
 import { FileEditor } from "./FileEditor";
 import { MarkdownView } from "./MarkdownView";
+import { RecordView } from "./RecordView";
 
 interface BrowseProps {
   data: OpsData;
@@ -25,6 +26,7 @@ export function Browse({ data, runSearch, reload, onMutated }: BrowseProps) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [raw, setRaw] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const hits = useMemo(() => runSearch(query), [runSearch, query]);
@@ -35,6 +37,7 @@ export function Browse({ data, runSearch, reload, onMutated }: BrowseProps) {
     : data.files.map((f) => ({ path: f.path, label: f.path.replace(/^(vms|projects)\//, ""), hint: lastUpdated.get(f.path) }));
 
   const current = data.files.find((f) => f.path === selected);
+  const structured = current ? ["vm", "project", "changelog"].includes(recordKind(current.path)) : false;
 
   async function undo() {
     setNotice(null);
@@ -122,15 +125,27 @@ export function Browse({ data, runSearch, reload, onMutated }: BrowseProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="truncate text-sm font-medium text-white">{current.path}</h2>
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                className="rounded-full bg-white/10 px-3 py-1 text-xs text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-sky-400"
-              >
-                Edit
-              </button>
+              <div className="flex gap-2">
+                {structured && (
+                  <button
+                    type="button"
+                    aria-pressed={raw}
+                    onClick={() => setRaw((v) => !v)}
+                    className="rounded-full bg-white/10 px-3 py-1 text-xs text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-sky-400"
+                  >
+                    Raw
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="rounded-full bg-white/10 px-3 py-1 text-xs text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-sky-400"
+                >
+                  Edit
+                </button>
+              </div>
             </div>
-            <MarkdownView content={current.content} />
+            {structured && !raw ? <RecordView path={current.path} content={current.content} /> : <MarkdownView content={current.content} />}
           </div>
         )}
       </section>

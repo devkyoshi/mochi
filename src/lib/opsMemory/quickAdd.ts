@@ -4,6 +4,8 @@ import changelogTemplate from "../../../templates/changelog.md?raw";
 import { NAME_RE, isIsoDate, parseEntry } from "./entries";
 import { parseMarkdown, serializeMarkdown, setField } from "./frontmatter";
 import { generateIndex } from "./indexGen";
+import { loginAccount, parseLogins, upsertLogin } from "./logins";
+import type { DevLogin } from "./records";
 import type { EntryKind, OpsEntry } from "./types";
 
 export const QUICK_TAGS = ["deploy", "config", "incident", "upgrade"] as const;
@@ -165,5 +167,61 @@ export function planQuickAdd(input: QuickAddInput): QuickAddPlan {
   return {
     edits: [...edits].map(([path, content]) => ({ path, content })),
     message: `${exists ? "log" : "add"} ${name}: ${note}`,
+  };
+}
+
+export interface DevLoginInput {
+  target: { kind: EntryKind; name: string };
+  login: Omit<DevLogin, "hasPassword">;
+  /** A new password is being stored in the keychain with this save. */
+  newPassword: boolean;
+  today: string;
+  files: { path: string; content: string }[];
+}
+
+/**
+ * Plan saving one dev login into a vm/project file: the table row (never the password), `last_updated`
+ * and a changelog line that names the login label only. Pure; the caller writes the files and then
+ * stores the password in the keychain under the returned `account`.
+ */
+export function planDevLogin(input: DevLoginInput): QuickAddPlan & { account: string } {
+  const { target, today } = input;
+  const label = cleanNote(input.login.label);
+  const username = input.login.username.trim();
+  if (label === "") throw new QuickAddError("Give the login a label.");
+  if (username === "") throw new QuickAddError("Enter a username or email.");
+  if (/[\s:]/.test(username)) throw new QuickAddError("The username can't contain spaces or ':'.");
+  if (!isIsoDate(today)) throw new QuickAddError("Invalid date.");
+  const name = target.name.trim();
+  if (!NAME_RE.test(name)) throw new QuickAddError("Names may only contain letters, digits, '.', '_' and '-'.");
+
+  const path = targetPath(target.kind, name);
+  const byPath = new Map(input.files.map((f) => [f.path, f.content]));
+  const exists = byPath.has(path);
+  const source = exists ? byPath.get(path)! : newEntryFile(target.kind, name, today);
+  const known = parseLogins(source).find(
+    (l) => l.label.toLowerCase() === label.toLowerCase() && l.username.toLowerCase() === username.toLowerCase(),
+  );
+
+  const row: DevLogin = { ...input.login, label, username, hasPassword: input.newPassword || !!known?.hasPassword };
+  let doc = parseMarkdown(upsertLogin(source, row));
+  doc = setField(doc, "last_updated", today);
+  if (target.kind === "vm") doc = setField(doc, "updated_by", BY);
+
+  const month = today.slice(0, 7);
+  const changelogPath = `changelog/${month}.md`;
+  const verb = known ? "updated" : "added";
+  const line = `- ${today} — dev login ${verb}: ${label} (${target.kind}: ${name}, by: ${BY})`;
+  const edits = new Map<string, string>([
+    [changelogPath, addChangelogLine(byPath.get(changelogPath), month, line)],
+    [path, serializeMarkdown(doc)],
+  ]);
+  const merged = input.files.filter((f) => !edits.has(f.path)).concat([...edits].map(([p, c]) => ({ path: p, content: c })));
+  edits.set("INDEX.md", generateIndex(entriesOf(merged), today));
+
+  return {
+    edits: [...edits].map(([p, content]) => ({ path: p, content })),
+    message: `dev login ${verb} for ${name}: ${label}`,
+    account: loginAccount(name, username),
   };
 }

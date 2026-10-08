@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDock } from "../../lib/dock/useDock";
 import { useOpsMemory } from "../../lib/ops/useOpsMemory";
 import { useIdle } from "../../lib/idle";
@@ -8,7 +8,9 @@ import { QuickAdd } from "../add/QuickAdd";
 import { Browse } from "../browse/Browse";
 import { Chat } from "../chat/Chat";
 import { Digest } from "../home/Digest";
+import { Directory } from "../directory/Directory";
 import { Home } from "../home/Home";
+import { Inbox } from "../inbox/Inbox";
 import { MascotDevPanel } from "../mascot";
 import { Wizard } from "../wizard/Wizard";
 import { Pill, pillState } from "./Pill";
@@ -26,6 +28,11 @@ export default function Dock() {
     () => computeStats(ops.entries, todayIso(), config.staleDays).stale,
     [ops.entries, config.staleDays],
   );
+  const [picked, setPicked] = useState<{ vm?: string; project?: string }>({});
+  const open = (kind: "vm" | "project", name: string) => {
+    setPicked((p) => ({ ...p, [kind]: name }));
+    send({ type: "selectTab", tab: kind === "vm" ? "vms" : "projects" });
+  };
   const alert = reviewStubs > 0 || stale.length > 0;
   const sleepy = useIdle(config.sleepyMinutes * 60_000, loaded && !expanded);
   const play = useSound(config.sound);
@@ -68,10 +75,14 @@ export default function Dock() {
             <TabBar
               tab={tab}
               sound={config.sound}
+              badges={{ inbox: reviewStubs }}
               onSelect={(t) => send({ type: "selectTab", tab: t })}
               onToggleSound={() => void updateConfig({ sound: !config.sound })}
             />
-            <section role="tabpanel" className="m-4 mt-3 min-h-0 flex-1 overflow-auto rounded-2xl bg-white/5 p-4 text-neutral-300">
+            <section
+              role="tabpanel"
+              className={`m-4 mt-3 min-h-0 flex-1 rounded-2xl bg-white/5 p-4 text-neutral-300 ${["browse", "projects", "vms"].includes(tab) ? "overflow-hidden" : "overflow-auto"}`}
+            >
               {tab === "settings" ? (
                 <SettingsPanel config={config} error={error} onChange={(p) => void updateConfig(p)} />
               ) : tab === "home" ? (
@@ -84,6 +95,7 @@ export default function Dock() {
                   reviewStubs={reviewStubs}
                   staleDays={config.staleDays}
                   onDismissChange={ops.clearExternalChange}
+                  onOpenInbox={() => send({ type: "selectTab", tab: "inbox" })}
                 >
                   <Digest files={ops.files} claudeProvider={config.claudeProvider} />
                   {import.meta.env.DEV && (
@@ -94,10 +106,20 @@ export default function Dock() {
                 </Home>
               ) : tab === "browse" ? (
                 <Browse data={ops} runSearch={ops.runSearch} reload={ops.reload} />
+              ) : tab === "projects" || tab === "vms" ? (
+                <Directory
+                  key={tab}
+                  kind={tab === "vms" ? "vm" : "project"}
+                  files={ops.files}
+                  selected={tab === "vms" ? picked.vm : picked.project}
+                  onSelect={(name) => setPicked((p) => ({ ...p, [tab === "vms" ? "vm" : "project"]: name }))}
+                  onOpen={open}
+                />
+              ) : tab === "inbox" ? (
+                <Inbox files={ops.files} />
               ) : tab === "add" ? (
                 <QuickAdd
                   files={ops.files}
-                  entries={ops.entries}
                   onSaved={() => {
                     play("happy");
                     void ops.reload();
