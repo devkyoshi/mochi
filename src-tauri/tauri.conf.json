@@ -12,14 +12,26 @@
   "app": {
     "windows": [
       {
-        "title": "mochi",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "Mochi",
+        "width": 720,
+        "height": 240,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "visible": false,
+        "focus": false,
+        "maximizable": false,
+        "minimizable": false
       }
     ],
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,
