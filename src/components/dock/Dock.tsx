@@ -1,5 +1,6 @@
 import { useDock } from "../../lib/dock/useDock";
 import type { TabId } from "../../lib/dock/dockState";
+import { MascotDevPanel } from "../mascot";
 import { Pill } from "./Pill";
 import { SettingsPanel } from "./SettingsPanel";
 import { TabBar } from "./TabBar";
@@ -33,7 +34,14 @@ export default function Dock() {
               {tab === "settings" ? (
                 <SettingsPanel config={config} error={error} onChange={(p) => void updateConfig(p)} />
               ) : (
-                <p>{PLACEHOLDERS[tab]}</p>
+                <>
+                  <p>{PLACEHOLDERS[tab]}</p>
+                  {import.meta.env.DEV && tab === "home" && (
+                    <div className="mt-3">
+                      <MascotDevPanel />
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </>

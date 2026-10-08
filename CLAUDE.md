@@ -23,6 +23,7 @@ Docs: `docs/PLAN.md` (stages), `docs/PROGRESS.md` (status), `docs/DECISION.md`, 
 
 ## Layout
 - `src/` React UI; `src/lib/` pure logic (tested); `src/lib/opsMemory/` schema, lossless frontmatter, INDEX gen; `src/test/` test setup
+- `src/components/mascot/` mascot (SVG/CSS, states in `states.ts`; see `docs/mascot.md`)
 - `templates/` Ops Memory file templates; `docs/schema.md` the schema
 - `src-tauri/src/` Rust commands (`lib.rs` registers them); `scanner.rs` secret scanner (`src/lib/secretScanner.ts` wrapper); `dock.rs`/`geometry.rs`/`config.rs` dock window, placement maths, persisted settings (`src/lib/api.ts`, `src/lib/dock/`, `src/components/dock/`; see `docs/platform-notes.md`)
 

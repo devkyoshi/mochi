@@ -8,7 +8,7 @@ Plan: [PLAN.md](PLAN.md). Update this file at the end of every stage. Find a sta
 | 1 | Ops Memory schema & templates | Done | 2026-10-08 |
 | 2 | Secret scanner | Done | 2026-10-08 |
 | 3 | Window shell (dock) | Done | 2026-10-08 |
-| 4 | Mascot | Not started | |
+| 4 | Mascot | Done | 2026-10-08 |
 | 5 | Setup wizard | Not started | |
 | 6 | Browse / edit / search / live refresh | Not started | |
 | 7 | Quick Add | Not started | |
@@ -24,3 +24,4 @@ Plan: [PLAN.md](PLAN.md). Update this file at the end of every stage. Find a sta
 - 2026-10-08 — Stage 1: schema doc, templates, lossless frontmatter parser/editor, entry validation, INDEX generator; 56 new vitest tests (57 total).
 - 2026-10-08 — Stage 2: Rust secret scanner (`scan_secrets` command) + TS wrapper; 23 cargo tests incl. false-positive cases (UUID, git SHA, versions, paths); 3 new vitest tests.
 - 2026-10-08 — Stage 3: frameless always-on-top dock, pill/panel with animation, global hotkey, auto-collapse, monitor memory, settings persistence; 15 new cargo tests, 13 new vitest tests. Manual check of transparency/hotkey on screen still advisable; click-through replaced by window resizing (see platform-notes).
+- 2026-10-08 — Stage 4: SVG/CSS `<Mascot>` with 7 states, cursor-tracking eyes, reduced-motion support, dev state switcher on Home (dev builds), docs/mascot.md with Rive contract; 13 new vitest tests (87 total).
