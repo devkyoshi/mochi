@@ -10,17 +10,17 @@ interface HomeProps {
   changedPaths: string[];
   /** Sessions that changed servers without updating Ops Memory (stubs in inbox.md). */
   reviewStubs?: number;
+  /** Days without an update before a VM/project counts as stale. */
+  staleDays?: number;
   onDismissChange: () => void;
   /** Injected for tests. */
   today?: string;
   children?: React.ReactNode;
 }
 
-const STALE_DAYS = 30;
-
-export function Home({ data, loading, error, externalChange, changedPaths, reviewStubs = 0, onDismissChange, today, children }: HomeProps) {
+export function Home({ data, loading, error, externalChange, changedPaths, reviewStubs = 0, staleDays = 30, onDismissChange, today, children }: HomeProps) {
   const day = today ?? todayIso();
-  const stats = useMemo(() => computeStats(data.entries, day, STALE_DAYS), [data.entries, day]);
+  const stats = useMemo(() => computeStats(data.entries, day, staleDays), [data.entries, day, staleDays]);
   const changes = useMemo(() => recentChanges(data.files, 5), [data.files]);
 
   if (error) {
@@ -57,7 +57,7 @@ export function Home({ data, loading, error, externalChange, changedPaths, revie
 
       {stats.stale.length > 0 && (
         <p className="text-amber-300" data-testid="stale">
-          Not updated in {STALE_DAYS}+ days: {stats.stale.join(", ")}
+          Not updated in {staleDays}+ days: {stats.stale.join(", ")}
         </p>
       )}
       {data.invalid.length > 0 && (

@@ -19,7 +19,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["macos-private-api"] }
+tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -32,6 +32,7 @@ futures-util = "0.3.34"
 keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
 tokio = { version = "1.53.2", features = ["io-util", "process", "time", "sync", "rt", "macros"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
+tauri-plugin-autostart = "2.7.0"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

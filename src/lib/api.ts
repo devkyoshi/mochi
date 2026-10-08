@@ -14,6 +14,9 @@ export interface AppConfig {
   setupComplete: boolean;
   claudeProvider: ClaudeProviderKind | null;
   autoApply: boolean;
+  staleDays: number;
+  sleepyMinutes: number;
+  launchAtLogin: boolean;
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -25,6 +28,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   setupComplete: false,
   claudeProvider: null,
   autoApply: false,
+  staleDays: 30,
+  sleepyMinutes: 10,
+  launchAtLogin: false,
 };
 
 export const getConfig = (): Promise<AppConfig> => invoke<AppConfig>("get_config");
@@ -157,3 +163,6 @@ export const integrationInstall = (opsPath?: string): Promise<InstallResult> =>
 export const integrationUninstall = (): Promise<InstallResult> => invoke<InstallResult>("integration_uninstall");
 
 export const integrationStatus = (): Promise<IntegrationStatus> => invoke<IntegrationStatus>("integration_status");
+
+/** Turn launch-at-login on or off in the operating system (only call from an explicit user action). */
+export const setLaunchAtLogin = (enabled: boolean): Promise<void> => invoke<void>("set_launch_at_login", { enabled });

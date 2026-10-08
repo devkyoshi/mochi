@@ -1,14 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useDock } from "../../lib/dock/useDock";
 import { useOpsMemory } from "../../lib/ops/useOpsMemory";
-import { countReviewStubs } from "../../lib/opsMemory";
+import { useIdle } from "../../lib/idle";
+import { useSound } from "../../lib/sound";
+import { computeStats, countReviewStubs, todayIso } from "../../lib/opsMemory";
 import { QuickAdd } from "../add/QuickAdd";
 import { Browse } from "../browse/Browse";
 import { Chat } from "../chat/Chat";
+import { Digest } from "../home/Digest";
 import { Home } from "../home/Home";
 import { MascotDevPanel } from "../mascot";
 import { Wizard } from "../wizard/Wizard";
-import { Pill } from "./Pill";
+import { Pill, pillState } from "./Pill";
 import { SettingsPanel } from "./SettingsPanel";
 import { TabBar } from "./TabBar";
 
@@ -19,6 +22,32 @@ export default function Dock() {
   const ops = useOpsMemory(loaded && config.setupComplete);
   const reviewStubs = countReviewStubs(ops.files.find((f) => f.path === "inbox.md")?.content ?? "");
 
+  const stale = useMemo(
+    () => computeStats(ops.entries, todayIso(), config.staleDays).stale,
+    [ops.entries, config.staleDays],
+  );
+  const alert = reviewStubs > 0 || stale.length > 0;
+  const sleepy = useIdle(config.sleepyMinutes * 60_000, loaded && !expanded);
+  const play = useSound(config.sound);
+
+  // Soft chirps when something new needs attention.
+  const seen = useRef({ stubs: 0, change: false });
+  useEffect(() => {
+    if (reviewStubs > seen.current.stubs) play("alert");
+    else if (ops.externalChange && !seen.current.change) play("change");
+    seen.current = { stubs: reviewStubs, change: ops.externalChange };
+  }, [reviewStubs, ops.externalChange, play]);
+
+  // Escape closes the panel.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") send({ type: "collapse" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded, send]);
+
   // First run: open the dock straight into the setup wizard.
   useEffect(() => {
     if (needsSetup) send({ type: "expand" });
@@ -26,7 +55,8 @@ export default function Dock() {
 
   return (
     <div className="flex h-screen w-screen items-start justify-center overflow-hidden">
-      <div
+      <main
+        aria-label="Mochi"
         data-testid="dock"
         data-expanded={expanded}
         className="dock flex flex-col overflow-hidden bg-neutral-900/95 text-neutral-100 shadow-lg ring-1 ring-white/10"
@@ -52,8 +82,10 @@ export default function Dock() {
                   externalChange={ops.externalChange}
                   changedPaths={ops.changedPaths}
                   reviewStubs={reviewStubs}
+                  staleDays={config.staleDays}
                   onDismissChange={ops.clearExternalChange}
                 >
+                  <Digest files={ops.files} claudeProvider={config.claudeProvider} />
                   {import.meta.env.DEV && (
                     <div className="mt-3">
                       <MascotDevPanel />
@@ -63,22 +95,35 @@ export default function Dock() {
               ) : tab === "browse" ? (
                 <Browse data={ops} runSearch={ops.runSearch} reload={ops.reload} />
               ) : tab === "add" ? (
-                <QuickAdd files={ops.files} entries={ops.entries} onSaved={() => void ops.reload()} />
+                <QuickAdd
+                  files={ops.files}
+                  entries={ops.entries}
+                  onSaved={() => {
+                    play("happy");
+                    void ops.reload();
+                  }}
+                />
               ) : (
                 <Chat
                   files={ops.files}
                   claudeProvider={config.claudeProvider}
                   autoApply={config.autoApply}
-                  onApplied={() => void ops.reload()}
+                  onApplied={() => {
+                    play("happy");
+                    void ops.reload();
+                  }}
                   onOpenSettings={() => send({ type: "selectTab", tab: "settings" })}
                 />
               )}
             </section>
           </>
         ) : (
-          <Pill onClick={() => send({ type: "expand" })} hasNewChange={ops.externalChange} needsReview={reviewStubs > 0} />
+          <Pill
+            onClick={() => send({ type: "expand" })}
+            mascotState={pillState({ alert, newChange: ops.externalChange, sleepy })}
+          />
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -29,6 +29,7 @@ Docs: `docs/PLAN.md` (stages), `docs/PROGRESS.md` (status), `docs/DECISION.md`, 
 - `src/lib/opsMemory/quickAdd.ts` pure planner for Quick Add; `src/components/add/` UI (saved via `write_ops_files`, one commit)
 - `src-tauri/src/claude.rs` CLI/API providers + keychain; `src/lib/claude/`, `src/components/chat/`; see `docs/claude-integration.md` (Claude has no file tools; edits are reviewed diffs)
 - `src-tauri/src/install.rs` installer, `hook.rs` + `src/bin/mochi-hook.rs` hook helper, `integration.rs` commands; `src/components/integration/`; see `docs/global-rule.md`. Tests must never touch the real `~/.claude`.
+- `src-tauri/src/tray.rs` tray + launch-at-login; `src/lib/{idle,sound}.ts`; `src/components/home/Digest.tsx`; `src/components/a11y.test.tsx` runs axe on every tab
 - `templates/` Ops Memory file templates; `docs/schema.md` the schema
 - `src-tauri/src/` Rust commands (`lib.rs` registers them); `scanner.rs` secret scanner (`src/lib/secretScanner.ts` wrapper); `dock.rs`/`geometry.rs`/`config.rs` dock window, placement maths, persisted settings (`src/lib/api.ts`, `src/lib/dock/`, `src/components/dock/`; see `docs/platform-notes.md`)
 

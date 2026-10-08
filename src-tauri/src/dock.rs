@@ -78,6 +78,7 @@ pub fn get_config(state: State<AppState>) -> Result<AppConfig, String> {
 /// hotkey is restored and an error is returned.
 #[tauri::command]
 pub fn set_config(app: AppHandle, state: State<AppState>, config: AppConfig) -> Result<AppConfig, String> {
+    let config = config.sanitized();
     let old = state.config.lock().map_err(|e| e.to_string())?.clone();
     if config.hotkey != old.hotkey {
         if let Err(e) = register_hotkey(&app, &config.hotkey) {

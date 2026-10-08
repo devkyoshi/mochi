@@ -9,6 +9,7 @@ mod ops;
 mod opsfs;
 mod scanner;
 mod store;
+mod tray;
 
 use dock::AppState;
 use std::sync::Mutex;
@@ -25,6 +26,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Focused(false) = event {
@@ -43,6 +45,9 @@ pub fn run() {
                 claude_cancels: Mutex::new(Default::default()),
             });
             opsfs::restart_watcher(app.handle());
+            if let Err(e) = tray::build(app.handle()) {
+                eprintln!("tray: {e}");
+            }
 
             if let Err(e) = dock::register_hotkey(app.handle(), &hotkey) {
                 eprintln!("hotkey: {e}");
@@ -78,7 +83,9 @@ pub fn run() {
             integration::integration_preview,
             integration::integration_install,
             integration::integration_uninstall,
-            integration::integration_status
+            integration::integration_status,
+            tray::set_launch_at_login,
+            tray::get_launch_at_login
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

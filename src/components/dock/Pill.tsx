@@ -1,24 +1,30 @@
-import { Mascot } from "../mascot";
+import { Mascot, type MascotState } from "../mascot";
 
 interface PillProps {
   onClick: () => void;
-  /** True when files changed outside Mochi and have not been seen yet. */
-  hasNewChange?: boolean;
-  /** True when inbox.md holds review stubs from Claude Code sessions. */
-  needsReview?: boolean;
+  /** What the mascot is doing (alert, new-change, sleepy or idle). */
+  mascotState?: MascotState;
 }
 
 /** Collapsed dock showing the mascot. */
-export function Pill({ onClick, hasNewChange = false, needsReview = false }: PillProps) {
+export function Pill({ onClick, mascotState = "idle" }: PillProps) {
   return (
     <button
       type="button"
       aria-label="Open Mochi"
       onClick={onClick}
-      className="flex h-full w-full items-center justify-center gap-2 text-neutral-100 focus-visible:outline-2 focus-visible:outline-sky-400"
+      className="flex h-full w-full items-center justify-center gap-2 text-neutral-100"
     >
-      <Mascot state={needsReview ? "alert" : hasNewChange ? "new-change" : "idle"} size={36} />
+      <Mascot state={mascotState} size={36} />
       <span className="text-sm font-medium">Mochi</span>
     </button>
   );
+}
+
+/** Which mascot state the collapsed pill shows. Alerts beat new changes, which beat sleeping. */
+export function pillState(flags: { alert: boolean; newChange: boolean; sleepy: boolean }): MascotState {
+  if (flags.alert) return "alert";
+  if (flags.newChange) return "new-change";
+  if (flags.sleepy) return "sleepy";
+  return "idle";
 }

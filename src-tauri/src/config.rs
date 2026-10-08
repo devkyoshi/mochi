@@ -26,11 +26,31 @@ pub struct AppConfig {
     pub claude_provider: Option<String>,
     /// Apply Claude's proposed edits without asking for approval.
     pub auto_apply: bool,
+    /// A VM/project not updated for this many days is flagged as stale.
+    pub stale_days: u32,
+    /// The mascot falls asleep after this many idle minutes.
+    pub sleepy_minutes: u32,
+    /// Start Mochi when the user logs in (mirrors the OS autostart entry).
+    pub launch_at_login: bool,
+}
+
+pub const MIN_STALE_DAYS: u32 = 1;
+pub const MAX_STALE_DAYS: u32 = 365;
+pub const MIN_SLEEPY_MINUTES: u32 = 1;
+pub const MAX_SLEEPY_MINUTES: u32 = 240;
+
+impl AppConfig {
+    /// Clamp numeric settings into their valid ranges.
+    pub fn sanitized(mut self) -> Self {
+        self.stale_days = self.stale_days.clamp(MIN_STALE_DAYS, MAX_STALE_DAYS);
+        self.sleepy_minutes = self.sleepy_minutes.clamp(MIN_SLEEPY_MINUTES, MAX_SLEEPY_MINUTES);
+        self
+    }
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
-        Self { hotkey: DEFAULT_HOTKEY.to_string(), auto_collapse: true, monitor: None, sound: true, ops_memory_path: None, setup_complete: false, claude_provider: None, auto_apply: false }
+        Self { hotkey: DEFAULT_HOTKEY.to_string(), auto_collapse: true, monitor: None, sound: true, ops_memory_path: None, setup_complete: false, claude_provider: None, auto_apply: false, stale_days: 30, sleepy_minutes: 10, launch_at_login: false }
     }
 }
 
@@ -77,6 +97,9 @@ mod tests {
             setup_complete: true,
             claude_provider: Some("api".into()),
             auto_apply: true,
+            stale_days: 14,
+            sleepy_minutes: 5,
+            launch_at_login: true,
         };
         save(dir.path(), &cfg).unwrap();
         assert_eq!(load(dir.path()), cfg);
@@ -113,6 +136,32 @@ mod tests {
         assert!(json.contains("autoCollapse"));
         assert!(json.contains("opsMemoryPath") && json.contains("setupComplete"));
         assert!(json.contains("claudeProvider") && json.contains("autoApply"));
+        assert!(json.contains("staleDays") && json.contains("sleepyMinutes") && json.contains("launchAtLogin"));
         assert!(!json.contains("auto_collapse"));
+    }
+
+    #[test]
+    fn defaults_for_new_settings() {
+        let c = AppConfig::default();
+        assert_eq!((c.stale_days, c.sleepy_minutes, c.launch_at_login), (30, 10, false));
+    }
+
+    #[test]
+    fn sanitized_clamps_out_of_range_values_and_keeps_valid_ones() {
+        let c = AppConfig { stale_days: 0, sleepy_minutes: 100_000, ..AppConfig::default() }.sanitized();
+        assert_eq!((c.stale_days, c.sleepy_minutes), (MIN_STALE_DAYS, MAX_SLEEPY_MINUTES));
+        let c = AppConfig { stale_days: 10_000, sleepy_minutes: 0, ..AppConfig::default() }.sanitized();
+        assert_eq!((c.stale_days, c.sleepy_minutes), (MAX_STALE_DAYS, MIN_SLEEPY_MINUTES));
+        let ok = AppConfig { stale_days: 45, sleepy_minutes: 20, ..AppConfig::default() };
+        assert_eq!(ok.clone().sanitized(), ok);
+    }
+
+    #[test]
+    fn old_config_files_without_the_new_fields_still_load() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("config.json"), r#"{"hotkey":"Alt+M","setupComplete":true}"#).unwrap();
+        let c = load(dir.path());
+        assert_eq!((c.stale_days, c.sleepy_minutes), (30, 10));
+        assert!(c.setup_complete);
     }
 }

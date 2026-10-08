@@ -10,8 +10,8 @@
 | `curious` | cursor near | pupils follow the cursor (disabled with reduced motion) |
 | `thinking` | a Claude request is running | blue bubble with pulsing dots |
 | `happy` | a save succeeded | squish, closed smiling eyes, cheeks, sparkles |
-| `alert` | stale VM / drift / secret / inbox stub | shake + amber glow |
-| `sleepy` | idle for N minutes | half-closed eyes, dimmed, "z" |
+| `alert` | stale VM (configurable days) / Claude Code review stub in inbox.md | shake + amber glow |
+| `sleepy` | no activity for the configured minutes (collapsed pill) | half-closed eyes, dimmed, "z" |
 | `new-change` | a file changed externally | hop + orange badge |
 
 Callers only pass `state`. The dev switcher (`MascotDevPanel`, shown on the Home tab in dev builds) previews all states.
