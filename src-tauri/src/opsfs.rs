@@ -47,6 +47,25 @@ pub fn write_ops_file(
     store::write_file(&root, &path, &content, &message)
 }
 
+#[derive(serde::Deserialize)]
+pub struct FileWrite {
+    pub path: String,
+    pub content: String,
+}
+
+/// Scan and write several files as one commit (all or nothing).
+#[tauri::command]
+pub fn write_ops_files(state: State<AppState>, files: Vec<FileWrite>, message: String) -> Result<WriteOutcome, String> {
+    let root = root(&state)?;
+    if let (Ok(mut sw), Ok(canon_root)) = (state.self_writes.lock(), root.canonicalize()) {
+        for f in &files {
+            sw.record(canon_root.join(&f.path));
+        }
+    }
+    let pairs: Vec<(String, String)> = files.into_iter().map(|f| (f.path, f.content)).collect();
+    store::write_files(&root, &pairs, &message)
+}
+
 #[tauri::command]
 pub fn undo_last_change(state: State<AppState>) -> Result<String, String> {
     let root = root(&state)?;

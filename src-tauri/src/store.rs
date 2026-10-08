@@ -156,6 +156,85 @@ pub fn write_file(root: &Path, rel: &str, content: &str, message: &str) -> Resul
     Ok(WriteOutcome::Saved { commit: hash })
 }
 
+/// Scan, write and commit several files as ONE commit. If any file contains secrets nothing is
+/// written. `Unchanged` is returned when every file already has the given content.
+pub fn write_files(root: &Path, files: &[(String, String)], message: &str) -> Result<WriteOutcome, String> {
+    if files.is_empty() {
+        return Err("No files to write.".into());
+    }
+    let mut seen = std::collections::HashSet::new();
+    let mut resolved = Vec::new();
+    for (rel, content) in files {
+        if content.len() > MAX_FILE_BYTES {
+            return Err("Content is too large.".into());
+        }
+        let path = resolve_path(root, rel)?;
+        if !is_markdown(&path) {
+            return Err("Only .md files can be written.".into());
+        }
+        if path.is_dir() {
+            return Err("That path is a folder.".into());
+        }
+        if !seen.insert(rel.clone()) {
+            return Err(format!("Duplicate path: {rel}"));
+        }
+        resolved.push(path);
+    }
+
+    let mut findings = Vec::new();
+    for (rel, content) in files {
+        for mut f in scanner::scan(content) {
+            f.preview = format!("{rel}: {}", f.preview);
+            findings.push(f);
+        }
+    }
+    if !findings.is_empty() {
+        return Ok(WriteOutcome::Blocked { findings });
+    }
+
+    let changed: Vec<usize> = (0..files.len())
+        .filter(|&i| fs::read_to_string(&resolved[i]).map(|old| old != files[i].1).unwrap_or(true))
+        .collect();
+    if changed.is_empty() {
+        return Ok(WriteOutcome::Unchanged);
+    }
+
+    // Remember originals so a failure part-way leaves the folder as it was.
+    let originals: Vec<Option<String>> = changed.iter().map(|&i| fs::read_to_string(&resolved[i]).ok()).collect();
+    for (k, &i) in changed.iter().enumerate() {
+        let result = match resolved[i].parent() {
+            Some(parent) => fs::create_dir_all(parent),
+            None => Ok(()),
+        }
+        .and_then(|_| fs::write(&resolved[i], &files[i].1));
+        if let Err(e) = result {
+            for (j, &back) in changed.iter().enumerate().take(k + 1) {
+                match &originals[j] {
+                    Some(old) => {
+                        let _ = fs::write(&resolved[back], old);
+                    }
+                    None => {
+                        let _ = fs::remove_file(&resolved[back]);
+                    }
+                }
+            }
+            return Err(format!("Could not write file: {e}"));
+        }
+    }
+
+    let subject: String = message.lines().next().unwrap_or("update").chars().take(100).collect();
+    let full = format!("mochi: {subject}");
+    let rels: Vec<&str> = changed.iter().map(|&i| files[i].0.as_str()).collect();
+    let mut add_args = vec!["add", "--"];
+    add_args.extend(rels.iter().copied());
+    let mut commit_args = vec!["-m", full.as_str(), "--only", "--"];
+    commit_args.extend(rels.iter().copied());
+    run_git(root, &add_args)?;
+    commit(root, &commit_args)?;
+    let hash = run_git(root, &["rev-parse", "--short", "HEAD"])?;
+    Ok(WriteOutcome::Saved { commit: hash })
+}
+
 /// Revert the most recent commit (new revert commit; history is kept). Refuses to revert the
 /// initial commit. Returns the revert's short hash.
 pub fn undo_last(root: &Path) -> Result<String, String> {
@@ -401,6 +480,87 @@ mod tests {
         let dir = repo();
         write_file(dir.path(), "changelog/2030-01.md", "# Changelog 2030-01\n", "new month").unwrap();
         assert!(dir.path().join("changelog/2030-01.md").exists());
+    }
+
+    // ---- batch write
+
+    fn pair(p: &str, c: &str) -> (String, String) {
+        (p.to_string(), c.to_string())
+    }
+
+    #[test]
+    fn write_files_makes_one_commit_with_all_files() {
+        let dir = repo();
+        let root = dir.path();
+        let before = commit_count(root);
+        let files = vec![
+            pair("vms/a.md", "a\n"),
+            pair("changelog/2026-10.md", "# Changelog 2026-10\n\n- x\n"),
+            pair("INDEX.md", "idx\n"),
+        ];
+        let out = write_files(root, &files, "quick add").unwrap();
+        assert!(matches!(out, WriteOutcome::Saved { .. }));
+        assert_eq!(commit_count(root), before + 1);
+        let changed = run_git(root, &["show", "--name-only", "--format=", "HEAD"]).unwrap();
+        for p in ["vms/a.md", "changelog/2026-10.md", "INDEX.md"] {
+            assert!(changed.contains(p), "{p} not in commit: {changed}");
+        }
+        assert_eq!(read_file(root, "vms/a.md").unwrap(), "a\n");
+    }
+
+    #[test]
+    fn write_files_blocks_everything_if_any_file_has_a_secret() {
+        let dir = repo();
+        let root = dir.path();
+        let before = commit_count(root);
+        let files = vec![pair("vms/ok.md", "fine\n"), pair("inbox.md", "password=hunter2\n")];
+        match write_files(root, &files, "m").unwrap() {
+            WriteOutcome::Blocked { findings } => {
+                assert_eq!(findings.len(), 1);
+                assert!(findings[0].preview.starts_with("inbox.md: "));
+                assert!(!findings[0].preview.contains("hunter2"));
+            }
+            other => panic!("expected Blocked, got {other:?}"),
+        }
+        assert!(!root.join("vms/ok.md").exists());
+        assert_eq!(commit_count(root), before);
+    }
+
+    #[test]
+    fn write_files_validates_every_path_before_writing() {
+        let dir = repo();
+        let root = dir.path();
+        let files = vec![pair("vms/ok.md", "x\n"), pair("../evil.md", "x\n")];
+        assert!(write_files(root, &files, "m").is_err());
+        assert!(!root.join("vms/ok.md").exists());
+        assert!(write_files(root, &[pair("vms/a.txt", "x")], "m").is_err());
+        assert!(write_files(root, &[], "m").is_err());
+        let dup = vec![pair("vms/a.md", "1"), pair("vms/a.md", "2")];
+        assert!(write_files(root, &dup, "m").unwrap_err().contains("Duplicate"));
+    }
+
+    #[test]
+    fn write_files_skips_unchanged_files_and_reports_unchanged_when_nothing_differs() {
+        let dir = repo();
+        let root = dir.path();
+        write_files(root, &[pair("vms/a.md", "1\n")], "add").unwrap();
+        let n = commit_count(root);
+        let out = write_files(root, &[pair("vms/a.md", "1\n")], "again").unwrap();
+        assert_eq!(out, WriteOutcome::Unchanged);
+        assert_eq!(commit_count(root), n);
+
+        let mixed = vec![pair("vms/a.md", "1\n"), pair("vms/b.md", "2\n")];
+        write_files(root, &mixed, "add b").unwrap();
+        assert_eq!(run_git(root, &["show", "--name-only", "--format=", "HEAD"]).unwrap(), "vms/b.md");
+    }
+
+    #[test]
+    fn write_files_commit_can_be_undone_as_a_unit() {
+        let dir = repo();
+        let root = dir.path();
+        write_files(root, &[pair("vms/a.md", "a\n"), pair("vms/b.md", "b\n")], "two files").unwrap();
+        undo_last(root).unwrap();
+        assert!(!root.join("vms/a.md").exists() && !root.join("vms/b.md").exists());
     }
 
     // ---- undo / history

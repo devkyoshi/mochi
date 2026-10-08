@@ -5,3 +5,4 @@ export * from "./indexGen";
 export * from "./stats";
 export * from "./search";
 export * from "./lineDiff";
+export * from "./quickAdd";

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useDock } from "../../lib/dock/useDock";
-import type { TabId } from "../../lib/dock/dockState";
 import { useOpsMemory } from "../../lib/ops/useOpsMemory";
+import { QuickAdd } from "../add/QuickAdd";
 import { Browse } from "../browse/Browse";
 import { Home } from "../home/Home";
 import { MascotDevPanel } from "../mascot";
@@ -10,10 +10,7 @@ import { Pill } from "./Pill";
 import { SettingsPanel } from "./SettingsPanel";
 import { TabBar } from "./TabBar";
 
-const PLACEHOLDERS: Record<Extract<TabId, "chat" | "add">, string> = {
-  chat: "Ask Claude about your Ops Memory.",
-  add: "Quickly log a change or note.",
-};
+const CHAT_PLACEHOLDER = "Ask Claude about your Ops Memory.";
 
 export default function Dock() {
   const { state, config, error, loaded, send, updateConfig } = useDock();
@@ -63,8 +60,10 @@ export default function Dock() {
                 </Home>
               ) : tab === "browse" ? (
                 <Browse data={ops} runSearch={ops.runSearch} reload={ops.reload} />
+              ) : tab === "add" ? (
+                <QuickAdd files={ops.files} entries={ops.entries} onSaved={() => void ops.reload()} />
               ) : (
-                <p>{PLACEHOLDERS[tab]}</p>
+                <p>{CHAT_PLACEHOLDER}</p>
               )}
             </section>
           </>

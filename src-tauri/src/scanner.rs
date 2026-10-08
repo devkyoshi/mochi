@@ -427,6 +427,20 @@ mod tests {
     }
 
     #[test]
+    fn shipped_templates_and_scaffold_files_are_clean() {
+        for (name, text) in [
+            ("vm", include_str!("../../templates/vm.md")),
+            ("project", include_str!("../../templates/project.md")),
+            ("changelog", include_str!("../../templates/changelog.md")),
+            ("changelog-entry", include_str!("../../templates/changelog-entry.md")),
+            ("inbox", include_str!("../../templates/inbox.md")),
+        ] {
+            let f = scan(text);
+            assert!(f.is_empty(), "template {name} is flagged: {f:?}");
+        }
+    }
+
+    #[test]
     fn scan_secrets_command_matches_scan() {
         assert_eq!(scan_secrets("password=hunter2".into()), scan("password=hunter2"));
     }

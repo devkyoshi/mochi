@@ -89,3 +89,7 @@ export const opsHistory = (path: string | null, limit: number): Promise<HistoryE
 /** Subscribe to external edits of Ops Memory files (relative paths). Resolves to an unsubscribe function. */
 export const onOpsChanged = (callback: (paths: string[]) => void): Promise<() => void> =>
   listen<string[]>("ops://changed", (e) => callback(e.payload));
+
+/** Save several files as one commit (all or nothing). */
+export const writeOpsFiles = (files: { path: string; content: string }[], message: string): Promise<WriteOutcome> =>
+  invoke<WriteOutcome>("write_ops_files", { files, message });

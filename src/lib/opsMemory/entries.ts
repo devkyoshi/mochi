@@ -1,7 +1,7 @@
 import { FrontmatterError, parseMarkdown, readFrontmatter } from "./frontmatter";
 import type { EntryKind, FrontmatterData, OpsEntry, ValidationIssue } from "./types";
 
-const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+export const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** True for a real calendar date written as YYYY-MM-DD. */

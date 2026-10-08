@@ -61,6 +61,7 @@ pub fn run() {
             opsfs::list_ops_files,
             opsfs::read_ops_file,
             opsfs::write_ops_file,
+            opsfs::write_ops_files,
             opsfs::undo_last_change,
             opsfs::ops_history
         ])
